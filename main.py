@@ -75,6 +75,15 @@ def append(key: Key, value: Value):
                   value_size=value_size)
 
 
+def get(key: Key) -> Value or None:
+    if key not in KEY_DIR:
+        return None
+
+    (file_path, value_size, value_position_offset) = KEY_DIR[key]
+    with open(file_path, "r") as file_reader:
+        file_reader.seek(value_position_offset)
+        value = file_reader.read(value_size)
+        return value
 
 
 # ~~~~~~~~~~~~~~~~~~~
@@ -84,3 +93,7 @@ def append(key: Key, value: Value):
 if __name__ == "__main__":
     print("Starting !")
     append(key="key1", value="value1")
+    append(key="key2", value="value2")
+    append(key="key3", value="value3")
+    append(key="key4", value="value4")
+    print(get("key3"))
