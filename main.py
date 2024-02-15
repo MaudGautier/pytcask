@@ -8,6 +8,7 @@ from typing import TextIO
 DIRECTORY = "./datafiles/"
 ACTIVE_FILE_PATH = DIRECTORY + "active.txt"
 TIMESTAMP_LENGTH = 10  # Assuming we don't use this DB later than year 2286 😁
+KEY_DIR = {}
 
 # ~~~~~~~~~~~~~~~~~~~
 # ~~~ Types
@@ -52,6 +53,10 @@ def append_to_active_file(key: Key, value: Value) -> Offset:
     return offset
 
 
+def update_keydir(key: Key, file_path: str, offset: Offset) -> None:
+    KEY_DIR[key] = (file_path, offset)
+
+
 # ~~~~~~~~~~~~~~~~~~~
 # ~~~ API
 # ~~~~~~~~~~~~~~~~~~~
@@ -63,7 +68,7 @@ def append(key: Key, value: Value):
     """
     # TODO: think about a way to encapsulate these two in an atomic operation so that either both or none is performed!
     active_file_offset = append_to_active_file(key=key, value=value)
-    update_keydir(key=key, file=ACTIVE_FILE, offset=active_file_offset)
+    update_keydir(key=key, file_path=ACTIVE_FILE_PATH, offset=active_file_offset)
 
 
 # ~~~~~~~~~~~~~~~~~~~
