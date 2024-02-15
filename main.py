@@ -98,4 +98,13 @@ if __name__ == "__main__":
     append(key="key2", value="value2")
     append(key="key3", value="value3")
     append(key="key4", value="value4")
-    print(get("key3"))
+    searched_keys = ["key1", "key2", "key3", "key4"]
+    for searched_key in searched_keys:
+        print(f"Here is the value of {searched_key}", get(searched_key))
+    append(key="key1", value="another_value1")
+    append(key="key2", value="another_value2")
+    append(key="key3", value="another_value3")
+    append(key="key1", value="yet_another_value1")
+    searched_keys = ["key1", "key2", "key3", "key4"]
+    for searched_key in searched_keys:
+        print(f"Here is the value of {searched_key}", get(searched_key))
