@@ -33,13 +33,13 @@ def compute_size(string: Key or Value):
     return len(string)
 
 
-def define_key_value_line(key: Key, value: Value):
+def define_key_value_metadata(key: Key, value: Value):
     crc = compute_crc(key=key, value=value)
     timestamp = str(int(time()))
     key_size = str(compute_size(key))
     value_size = str(compute_size(value))
 
-    return crc + timestamp + key_size + value_size + key + value + "\n"
+    return crc + timestamp + key_size + value_size
 
 
 def get_current_offset(file: TextIO) -> Offset:
@@ -47,14 +47,16 @@ def get_current_offset(file: TextIO) -> Offset:
 
 
 def append_to_active_file(key: Key, value: Value) -> Offset:
-    key_value_line = define_key_value_line(key=key, value=value)
-    offset = get_current_offset(file=ACTIVE_FILE)
-    ACTIVE_FILE.write(key_value_line)
-    return offset
+    key_value_metadata_line = define_key_value_metadata(key=key, value=value)
+    ACTIVE_FILE.write(key_value_metadata_line)
+    ACTIVE_FILE.write(key)
+    value_position_offset = get_current_offset(file=ACTIVE_FILE)
+    ACTIVE_FILE.write(value)
+    return value_position_offset
 
 
-def update_keydir(key: Key, file_path: str, offset: Offset) -> None:
-    KEY_DIR[key] = (file_path, offset)
+def update_keydir(key: Key, file_path: str, value_position: Offset, value_size: int) -> None:
+    KEY_DIR[key] = (file_path, value_size, value_position)
 
 
 # ~~~~~~~~~~~~~~~~~~~
@@ -67,8 +69,12 @@ def append(key: Key, value: Value):
     2. Add the key to the keyDir in-memory structure.
     """
     # TODO: think about a way to encapsulate these two in an atomic operation so that either both or none is performed!
-    active_file_offset = append_to_active_file(key=key, value=value)
-    update_keydir(key=key, file_path=ACTIVE_FILE_PATH, offset=active_file_offset)
+    active_file_value_position_offset = append_to_active_file(key=key, value=value)
+    value_size = compute_size(value)
+    update_keydir(key=key, file_path=ACTIVE_FILE_PATH, value_position=active_file_value_position_offset,
+                  value_size=value_size)
+
+
 
 
 # ~~~~~~~~~~~~~~~~~~~
