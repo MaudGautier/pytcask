@@ -9,6 +9,7 @@ DIRECTORY = "./datafiles/"
 ACTIVE_FILE_PATH = DIRECTORY + "active.txt"
 TIMESTAMP_LENGTH = 10  # Assuming we don't use this DB later than year 2286 😁
 KEY_DIR = {}
+KEY_VALUE_PAIR_SEPARATOR = "\n"
 
 # ~~~~~~~~~~~~~~~~~~~
 # ~~~ Types
@@ -52,6 +53,7 @@ def append_to_active_file(key: Key, value: Value) -> Offset:
     ACTIVE_FILE.write(key)
     value_position_offset = get_current_offset(file=ACTIVE_FILE)
     ACTIVE_FILE.write(value)
+    ACTIVE_FILE.write(KEY_VALUE_PAIR_SEPARATOR)
     return value_position_offset
 
 
