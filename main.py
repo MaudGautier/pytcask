@@ -54,6 +54,7 @@ def append_to_active_file(key: Key, value: Value) -> Offset:
     value_position_offset = get_current_offset(file=ACTIVE_FILE)
     ACTIVE_FILE.write(value)
     ACTIVE_FILE.write(KEY_VALUE_PAIR_SEPARATOR)
+    ACTIVE_FILE.flush()
     return value_position_offset
 
 
