@@ -21,7 +21,7 @@ Reference papers:
 Original plan:
 - [x] Append only to one single file
 - [ ] Add an interface to add/search key
-- [ ] When the file meets a certain size threshold => open a new active one 
+- [x] When the file meets a certain size threshold => open a new active one 
   -> requires something pointing to the active file and the rest of immutable files 
 - [x] Create a hash index = keydir 
 - [ ] Add compaction/merging process on the list of immutable files

@@ -1,3 +1,4 @@
+import os
 from time import time
 from typing import TextIO
 
@@ -10,6 +11,7 @@ ACTIVE_FILE_PATH = DIRECTORY + "active.txt"
 TIMESTAMP_LENGTH = 10  # Assuming we don't use this DB later than year 2286 😁
 KEY_DIR = {}
 KEY_VALUE_PAIR_SEPARATOR = "\n"
+ACTIVE_FILE_THRESHOLD = 150  # This is an offset number (= number of characters since the start)
 
 # ~~~~~~~~~~~~~~~~~~~
 # ~~~ Types
@@ -47,14 +49,36 @@ def get_current_offset(file: TextIO) -> Offset:
     return file.tell()
 
 
-def append_to_active_file(key: Key, value: Value) -> Offset:
-    key_value_metadata_line = define_key_value_metadata(key=key, value=value)
-    ACTIVE_FILE.write(key_value_metadata_line)
+def write_to_active_file(metadata: str, key: Key, value: Value) -> Offset:
+    ACTIVE_FILE.write(metadata)
     ACTIVE_FILE.write(key)
     value_position_offset = get_current_offset(file=ACTIVE_FILE)
     ACTIVE_FILE.write(value)
     ACTIVE_FILE.write(KEY_VALUE_PAIR_SEPARATOR)
     ACTIVE_FILE.flush()
+    return value_position_offset
+
+
+def append_to_active_file(key: Key, value: Value) -> Offset:
+    key_value_metadata_line = define_key_value_metadata(key=key, value=value)
+    active_file_size = get_current_offset(file=ACTIVE_FILE)
+
+    if active_file_size + len(key_value_metadata_line) + len(key) + len(value) > ACTIVE_FILE_THRESHOLD:
+        ACTIVE_FILE.close()
+        # rename it
+        immutable_file_path = f"{DIRECTORY}{int(time())}.txt"
+        os.rename(src=ACTIVE_FILE_PATH, dst=immutable_file_path)
+
+        # Update the in-memory KEY_DIR
+        for key, key_dir_value in KEY_DIR.items():
+            file_path, value_size, value_position = key_dir_value
+            if file_path == ACTIVE_FILE_PATH:
+                KEY_DIR[key] = (immutable_file_path, value_size, value_position)
+
+        # open the new active one
+        globals()['ACTIVE_FILE'] = open(ACTIVE_FILE_PATH, "w")
+
+    value_position_offset = write_to_active_file(metadata=key_value_metadata_line, key=key, value=value)
     return value_position_offset
 
 
@@ -74,11 +98,15 @@ def append(key: Key, value: Value):
     # TODO: think about a way to encapsulate these two in an atomic operation so that either both or none is performed!
     active_file_value_position_offset = append_to_active_file(key=key, value=value)
     value_size = compute_size(value)
-    update_keydir(key=key, file_path=ACTIVE_FILE_PATH, value_position=active_file_value_position_offset,
+    update_keydir(key=key,
+                  file_path=ACTIVE_FILE_PATH,
+                  value_position=active_file_value_position_offset,
                   value_size=value_size)
 
 
 def get(key: Key) -> Value or None:
+    """ Returns the value for the key searched. If there is no such key in the database, return None.
+    """
     if key not in KEY_DIR:
         return None
 
