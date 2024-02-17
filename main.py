@@ -1,12 +1,8 @@
 import os
 from collections import namedtuple
 from time import time
-from typing import TextIO
 
 
-# ~~~~~~~~~~~~~~~~~~~
-# ~~~ Constants
-# ~~~~~~~~~~~~~~~~~~~
 class DatabaseItem:
     Key = str
     Value = str
@@ -31,13 +27,17 @@ class DatabaseItem:
     def metadata(self) -> str:
         return f"{self.crc}{int(time())}{self.key_size}{self.value_size}"
 
+
 class Database:
     Offset = int
     DEFAULT_DIRECTORY = "./datafiles/"
     TIMESTAMP_LENGTH = 10  # Assuming we don't use this DB later than year 2286 😁
     KEY_VALUE_PAIR_SEPARATOR = "\n"
-    ACTIVE_FILE_THRESHOLD = 150  # This is an offset number (= number of characters since the start)
-    KeyDirEntry = namedtuple('KeyDirEntry', ['file_path', 'value_position', 'value_size'])
+    # ACTIVE_FILE_THRESHOLD is an offset number (= number of characters since the start)
+    ACTIVE_FILE_THRESHOLD = 150
+    KeyDirEntry = namedtuple(
+        "KeyDirEntry", ["file_path", "value_position", "value_size"]
+    )
 
     def __init__(self, directory=DEFAULT_DIRECTORY):
         self.directory = directory
@@ -62,8 +62,13 @@ class Database:
         key_value_metadata_line = item.metadata
         active_file_size = self._current_offset
 
-        if active_file_size + len(
-                key_value_metadata_line) + item.key_size + item.value_size > Database.ACTIVE_FILE_THRESHOLD:
+        if (
+            active_file_size
+            + len(key_value_metadata_line)
+            + item.key_size
+            + item.value_size
+            > Database.ACTIVE_FILE_THRESHOLD
+        ):
             self.active_file.close()
             # rename it
             immutable_file_path = f"{self.directory}{int(time())}.txt"
@@ -72,9 +77,11 @@ class Database:
             # Update the in-memory KEY_DIR
             for key, key_dir_entry in self.key_dir.items():
                 if key_dir_entry.file_path == self.active_file_path:
-                    self.key_dir[key] = Database.KeyDirEntry(file_path=immutable_file_path,
-                                                             value_position=key_dir_entry.value_position,
-                                                             value_size=key_dir_entry.value_size)
+                    self.key_dir[key] = Database.KeyDirEntry(
+                        file_path=immutable_file_path,
+                        value_position=key_dir_entry.value_position,
+                        value_size=key_dir_entry.value_size,
+                    )
 
             # open the new active one
             self.active_file = open(self.active_file_path, "w")
@@ -82,15 +89,23 @@ class Database:
         value_position_offset = self._write_to_active_file(item)
         return value_position_offset
 
-    def _update_keydir(self, key: DatabaseItem.Key, file_path: str, value_position: Offset, value_size: int) -> None:
-        self.key_dir[key] = Database.KeyDirEntry(file_path=file_path, value_position=value_position, value_size=value_size)
+    def _update_keydir(
+        self,
+        key: DatabaseItem.Key,
+        file_path: str,
+        value_position: Offset,
+        value_size: int,
+    ) -> None:
+        self.key_dir[key] = Database.KeyDirEntry(
+            file_path=file_path, value_position=value_position, value_size=value_size
+        )
 
     # ~~~~~~~~~~~~~~~~~~~
     # ~~~ API
     # ~~~~~~~~~~~~~~~~~~~
 
     def append(self, key: DatabaseItem.Key, value: DatabaseItem.Value):
-        """ When appending, we need to have an operation that atomically performs the following two things:
+        """When appending, we need to have an operation that atomically performs the following two things:
         1. Append the key-value pair to the currently active file
         2. Add the key to the keyDir in-memory structure.
         """
@@ -98,14 +113,15 @@ class Database:
         item = DatabaseItem(key=key, value=value)
         active_file_value_position_offset = self._append_to_active_file(item)
         value_size = item.value_size
-        self._update_keydir(key=key,
-                            file_path=self.active_file_path,
-                            value_position=active_file_value_position_offset,
-                            value_size=value_size)
+        self._update_keydir(
+            key=key,
+            file_path=self.active_file_path,
+            value_position=active_file_value_position_offset,
+            value_size=value_size,
+        )
 
     def get(self, key: DatabaseItem.Key) -> DatabaseItem.Value or None:
-        """ Returns the value for the key searched. If there is no such key in the database, return None.
-        """
+        """Returns the value for the key searched. If there is no such key in the database, return None."""
         if key not in self.key_dir:
             return None
 
