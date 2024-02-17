@@ -3,6 +3,9 @@
 ## Use the project
 
 ```shell
+# Create the virtual environment
+python3 -m venv .venv
+
 # Activate the virtual env
 source .venv/bin/activate
 
