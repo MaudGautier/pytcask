@@ -1,4 +1,6 @@
 asttokens==2.4.1
+black==24.2.0
+click==8.1.7
 decorator==5.1.1
 exceptiongroup==1.2.0
 executing==2.0.1
@@ -6,8 +8,12 @@ ipdb==0.13.13
 ipython==8.18.1
 jedi==0.19.1
 matplotlib-inline==0.1.6
+mypy-extensions==1.0.0
+packaging==23.2
 parso==0.8.3
+pathspec==0.12.1
 pexpect==4.9.0
+platformdirs==4.2.0
 prompt-toolkit==3.0.43
 ptyprocess==0.7.0
 pure-eval==0.2.2
