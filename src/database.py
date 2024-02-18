@@ -16,7 +16,9 @@ class Database:
         self.key_dir = KeyDir()
 
     def _generate_new_active_file(self):
-        immutable_file_path = f"{self.directory}{int(time())}.txt"
+        # Using time in nanoseconds to avoid filename collisions
+        timestamp_in_ns = int(time() * 1000000)
+        immutable_file_path = f"{self.directory}{timestamp_in_ns}.txt"
         self.active_file.convert_to_immutable(new_path=immutable_file_path)
         self.key_dir.update_file_path(
             previous_path=self.active_file_path, new_path=immutable_file_path
