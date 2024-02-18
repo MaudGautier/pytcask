@@ -1,23 +1,24 @@
 import os
+from typing import BinaryIO
 
 from src.database_item import DatabaseItem
+from src.io_utils import encode, decode
 
 
 class File:
     Offset = int
-    TIMESTAMP_LENGTH = 10  # Assuming we don't use this DB later than year 2286 😁
     KEY_VALUE_PAIR_SEPARATOR = "\n"
 
     def __init__(self, path: str, mode: str):
-        self.file = open(path, mode=mode)
+        self.file: BinaryIO = open(path, mode=f"{mode}b")
         self.path = path
 
     @staticmethod
     def read(path: str, start: int, end: int):
-        with open(path, "r") as file:
+        with open(path, "rb") as file:
             file.seek(start)
             value = file.read(end - start)
-            return value
+            return decode(value)
 
 
 class ActiveFile(File):
@@ -25,11 +26,11 @@ class ActiveFile(File):
         super().__init__(path=path, mode="w")
 
     def _append(self, item: DatabaseItem) -> File.Offset:
-        self.file.write(item.metadata)
-        self.file.write(item.key)
+        self.file.write(encode(item.metadata))
+        self.file.write(encode(item.key))
         value_position_offset = self._current_offset
-        self.file.write(item.value)
-        self.file.write(self.KEY_VALUE_PAIR_SEPARATOR)
+        self.file.write(encode(item.value))
+        self.file.write(encode(self.KEY_VALUE_PAIR_SEPARATOR))
         self.file.flush()
         return value_position_offset
 

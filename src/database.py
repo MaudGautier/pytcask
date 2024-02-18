@@ -7,7 +7,6 @@ from src.key_dir import KeyDir
 
 class Database:
     DEFAULT_DIRECTORY = "./datafiles/"
-    # ACTIVE_FILE_THRESHOLD is an offset number (= number of characters since the start)
     ACTIVE_FILE_THRESHOLD = 150
 
     def __init__(self, directory=DEFAULT_DIRECTORY):

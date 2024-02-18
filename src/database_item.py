@@ -1,5 +1,7 @@
 from time import time
 
+from src.io_utils import encode
+
 
 class DatabaseItem:
     Key = str
@@ -19,7 +21,7 @@ class DatabaseItem:
 
     @property
     def value_size(self) -> int:
-        return len(self.value)
+        return len(encode(self.value))
 
     @property
     def metadata(self) -> str:
