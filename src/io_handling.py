@@ -10,8 +10,8 @@ class File:
     KEY_VALUE_PAIR_SEPARATOR = "\n"
 
     def __init__(self, path: str, mode: str):
-        self.file: BinaryIO = open(path, mode=f"{mode}b")
         self.path = path
+        self.file: BinaryIO = self.get_file(mode=mode)
 
     @staticmethod
     def read(path: str, start: int, end: int):
@@ -19,6 +19,17 @@ class File:
             file.seek(start)
             value = file.read(end - start)
             return decode(value)
+
+    @staticmethod
+    def ensure_directory_exists(file_path) -> None:
+        directory = os.path.dirname(file_path)
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+
+    def get_file(self, mode: str) -> BinaryIO:
+        """Opens or creates a file in binary mode (depending on the mode passed)"""
+        self.ensure_directory_exists(self.path)
+        return open(self.path, mode=f"{mode}b")
 
 
 class ActiveFile(File):
