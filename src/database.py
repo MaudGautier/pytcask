@@ -6,7 +6,7 @@ from src.key_dir import KeyDir
 
 
 class Database:
-    DEFAULT_DIRECTORY = "./datafiles/"
+    DEFAULT_DIRECTORY = "./datafiles/default/"
     DEFAULT_MAX_FILE_SIZE = 150
 
     def __init__(
