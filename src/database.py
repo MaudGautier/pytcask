@@ -7,13 +7,16 @@ from src.key_dir import KeyDir
 
 class Database:
     DEFAULT_DIRECTORY = "./datafiles/"
-    ACTIVE_FILE_THRESHOLD = 150
+    DEFAULT_MAX_FILE_SIZE = 150
 
-    def __init__(self, directory=DEFAULT_DIRECTORY):
+    def __init__(
+        self, directory=DEFAULT_DIRECTORY, max_file_size=DEFAULT_MAX_FILE_SIZE
+    ):
         self.directory = directory
         self.active_file_path = directory + "active.txt"
         self.active_file = ActiveFile(path=self.active_file_path)
         self.key_dir = KeyDir()
+        self.max_file_size = max_file_size
 
     def _generate_new_active_file(self):
         # Using time in nanoseconds to avoid filename collisions
@@ -28,7 +31,7 @@ class Database:
     def _append_to_active_file(self, item: DatabaseItem) -> File.Offset:
         new_line_size = len(item.metadata) + item.key_size + item.value_size
         expected_file_size = self.active_file.size + new_line_size
-        is_active_file_too_big = expected_file_size > Database.ACTIVE_FILE_THRESHOLD
+        is_active_file_too_big = expected_file_size > self.max_file_size
 
         if is_active_file_too_big:
             self._generate_new_active_file()
