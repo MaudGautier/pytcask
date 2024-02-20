@@ -17,7 +17,7 @@ class Item:
 
     @property
     def key_size(self) -> int:
-        return len(self.key)
+        return len(encode(self.key))
 
     @property
     def value_size(self) -> int:
