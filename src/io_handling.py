@@ -1,11 +1,9 @@
 import os
 import struct
-from datetime import time, datetime
-from functools import lru_cache
+from datetime import datetime
 from typing import BinaryIO
 
 from src.item import Item
-from src.io_utils import encode, decode
 
 ENCODING = "utf-8"
 NB_BYTES_INTEGER = 4
@@ -94,11 +92,13 @@ class File:
         self.file: BinaryIO = self.get_file(mode=mode)
 
     @staticmethod
-    def read(path: str, start: int, end: int):
+    def read(path: str, start: int, end: int) -> str:
         with open(path, "rb") as file:
             file.seek(start)
             value = file.read(end - start)
-            return decode(value)
+            # The following is true only for string values (or could be value.decode(ENCODING) as well)
+            # TODO: handle other cases as well (integer values for example) + add tests
+            return str(value, encoding=ENCODING)
 
     @staticmethod
     def ensure_directory_exists(file_path) -> None:
@@ -116,12 +116,11 @@ class ActiveFile(File):
     def __init__(self, path: str):
         super().__init__(path=path, mode="w")
 
-    def _append(self, item: Item) -> File.Offset:
-        self.file.write(encode(item.metadata))
-        self.file.write(encode(item.key))
-        value_position_offset = self._current_offset
-        self.file.write(encode(item.value))
-        self.file.write(encode(self.KEY_VALUE_PAIR_SEPARATOR))
+    def _append(self, storable: Storable) -> File.Offset:
+        self.file.write(storable.to_bytes())
+        offset = self.file.tell()
+        # WARNING: The following leaks info from storable to file which is not great
+        value_position_offset = offset - storable.value_size
         self.file.flush()
         return value_position_offset
 
@@ -133,8 +132,8 @@ class ActiveFile(File):
     def size(self) -> File.Offset:
         return self._current_offset
 
-    def append(self, item: Item) -> File.Offset:
-        return self._append(item=item)
+    def append(self, storable: Storable) -> File.Offset:
+        return self._append(storable=storable)
 
     def close(self) -> None:
         self.file.close()
