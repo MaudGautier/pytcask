@@ -6,14 +6,14 @@ from src.key_dir import KeyDir
 
 
 class StorageEngine:
-    DEFAULT_DIRECTORY = "./datafiles/default/"
+    DEFAULT_DIRECTORY = "./datafiles/default"
     DEFAULT_MAX_FILE_SIZE = 150
 
     def __init__(
         self, directory=DEFAULT_DIRECTORY, max_file_size=DEFAULT_MAX_FILE_SIZE
     ):
         self.directory = directory
-        self.active_file_path = directory + "active.txt"
+        self.active_file_path = f"{self.directory}/{'active.txt'}"
         self.active_file = ActiveFile(path=self.active_file_path)
         self.key_dir = KeyDir()
         self.max_file_size = max_file_size
@@ -21,7 +21,7 @@ class StorageEngine:
     def _generate_new_active_file(self):
         # Using time in nanoseconds to avoid filename collisions
         timestamp_in_ns = int(time() * 1000000)
-        immutable_file_path = f"{self.directory}{timestamp_in_ns}.txt"
+        immutable_file_path = f"{self.directory}/{timestamp_in_ns}.txt"
         self.active_file.convert_to_immutable(new_path=immutable_file_path)
         self.key_dir.update_file_path(
             previous_path=self.active_file_path, new_path=immutable_file_path
