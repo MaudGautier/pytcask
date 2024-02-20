@@ -1,8 +1,88 @@
 import os
+import struct
+from datetime import time, datetime
+from functools import lru_cache
 from typing import BinaryIO
 
 from src.item import Item
 from src.io_utils import encode, decode
+
+ENCODING = "utf-8"
+NB_BYTES_INTEGER = 4
+
+
+class Storable:
+    def __init__(
+        self,
+        key: str,
+        value: bytes,
+        timestamp: int = int(datetime.timestamp(datetime.now())),
+    ):
+        self.key = key
+        self.value = value
+        self.timestamp = timestamp
+
+    @property
+    def value_size(self) -> int:
+        # Offset in bytes = number of bytes (because self.value is in bytes)
+        return len(self.value)
+
+    @property
+    def key_size(self) -> int:
+        return len(self.key)
+
+    @property
+    def timestamp_size(self) -> int:
+        return 4  # should be 4 bytes i.e. 32 bits
+
+    @property
+    def human_timestamp(self) -> datetime:
+        return datetime.fromtimestamp(self.timestamp)
+
+    @property
+    def encoded_metadata(self) -> bytes:
+        return struct.pack("iii", self.timestamp, self.key_size, self.value_size)
+
+    @property
+    def encoded_key(self):
+        return bytes(self.key, encoding=ENCODING)
+
+    @property
+    def size(self) -> int:
+        return len(self.encoded_metadata) + len(self.encoded_key) + len(self.value)
+
+    def to_bytes(self) -> bytes:
+        encoded_metadata = self.encoded_metadata
+        encoded_key = self.encoded_key
+        encoded_value = self.value
+
+        return encoded_metadata + encoded_key + encoded_value
+
+    @classmethod
+    def from_bytes(cls, data: bytes):
+        # metadata_offset is the number of bytes expected in the metadata
+        metadata_offset = 3 * NB_BYTES_INTEGER
+        timestamp, key_size, value_size = struct.unpack("iii", data[:metadata_offset])
+        key = str(data[metadata_offset : metadata_offset + key_size], encoding=ENCODING)
+        value = data[
+            metadata_offset + key_size : metadata_offset + key_size + value_size
+        ]
+
+        return cls(key=key, value=value, timestamp=timestamp)
+
+    def __eq__(self, other):
+        return (
+            self.key == other.key
+            and self.value == other.value
+            and self.timestamp == other.timestamp
+        )
+
+    def __repr__(self):
+        return f"{self.key}:{self.value.decode(ENCODING)} ({self.timestamp})"
+
+    @classmethod
+    def from_item(cls, item: Item):
+        return cls(value=bytes(item.value, encoding=ENCODING), key=item.key)
 
 
 class File:
