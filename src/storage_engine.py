@@ -1,3 +1,4 @@
+import os
 from time import time
 
 from src.item import Item
@@ -70,3 +71,13 @@ class StorageEngine:
             start=key_dir_entry.value_position,
             end=key_dir_entry.value_position + key_dir_entry.value_size,
         )
+
+    def clear(self, delete_directory: bool = False) -> None:
+        """Clears the storage space by deleting all the data files.
+        The main purpose of this method is to be used to clean up after running tests.
+        """
+        for filename in os.listdir(self.directory):
+            file_path = f"{self.directory}/{filename}"
+            os.remove(file_path)
+        if delete_directory:
+            os.rmdir(self.directory)
