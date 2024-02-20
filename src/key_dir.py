@@ -10,7 +10,7 @@ class KeyDir:
     )
 
     def __init__(self):
-        self.content = {}
+        self.items = {}
 
     def update(
         self,
@@ -19,12 +19,12 @@ class KeyDir:
         value_position: File.Offset,
         value_size: int,
     ) -> None:
-        self.content[key] = self.KeyDirEntry(
+        self.items[key] = self.KeyDirEntry(
             file_path=file_path, value_position=value_position, value_size=value_size
         )
 
     def update_file_path(self, previous_path: str, new_path: str) -> None:
-        for key, key_dir_entry in self.content.items():
+        for key, key_dir_entry in self.items.items():
             if key_dir_entry.file_path == previous_path:
                 self.update(
                     key=key,
@@ -33,5 +33,5 @@ class KeyDir:
                     value_size=key_dir_entry.value_size,
                 )
 
-    def get(self, key: Item.Key):
-        return self.content[key] if key in self.content else None
+    def get(self, key: Item.Key) -> KeyDirEntry or None:
+        return self.items[key] if key in self.items else None

@@ -11,15 +11,17 @@ class StorageEngine:
     DEFAULT_MAX_FILE_SIZE = 150
 
     def __init__(
-        self, directory=DEFAULT_DIRECTORY, max_file_size=DEFAULT_MAX_FILE_SIZE
+        self,
+        directory: str = DEFAULT_DIRECTORY,
+        max_file_size: int = DEFAULT_MAX_FILE_SIZE,
     ):
         self.directory = directory
-        self.active_file_path = f"{self.directory}/{'active.txt'}"
+        self.active_file_path = f"{self.directory}/active.txt"
         self.active_file = ActiveFile(path=self.active_file_path)
         self.key_dir = KeyDir()
         self.max_file_size = max_file_size
 
-    def _generate_new_active_file(self):
+    def _generate_new_active_file(self) -> None:
         # Using time in nanoseconds to avoid filename collisions
         timestamp_in_ns = int(time() * 1000000)
         immutable_file_path = f"{self.directory}/{timestamp_in_ns}.txt"
@@ -44,7 +46,7 @@ class StorageEngine:
     # ~~~ API
     # ~~~~~~~~~~~~~~~~~~~
 
-    def append(self, key: Item.Key, value: Item.Value):
+    def append(self, key: Item.Key, value: Item.Value) -> None:
         """When appending, we need to have an operation that atomically performs the following two things:
         1. Append the key-value pair to the currently active file
         2. Add the key to the keyDir in-memory structure.

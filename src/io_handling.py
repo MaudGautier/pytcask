@@ -42,7 +42,7 @@ class Storable:
         return struct.pack("iii", self.timestamp, self.key_size, self.value_size)
 
     @property
-    def encoded_key(self):
+    def encoded_key(self) -> bytes:
         return bytes(self.key, encoding=ENCODING)
 
     @property
@@ -57,7 +57,7 @@ class Storable:
         return encoded_metadata + encoded_key + encoded_value
 
     @classmethod
-    def from_bytes(cls, data: bytes):
+    def from_bytes(cls, data: bytes) -> "Storable":
         # metadata_offset is the number of bytes expected in the metadata
         metadata_offset = 3 * NB_BYTES_INTEGER
         timestamp, key_size, value_size = struct.unpack("iii", data[:metadata_offset])
@@ -68,18 +68,18 @@ class Storable:
 
         return cls(key=key, value=value, timestamp=timestamp)
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         return (
             self.key == other.key
             and self.value == other.value
             and self.timestamp == other.timestamp
         )
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"{self.key}:{self.value.decode(ENCODING)} ({self.timestamp})"
 
     @classmethod
-    def from_item(cls, item: Item):
+    def from_item(cls, item: Item) -> "Storable":
         return cls(value=bytes(item.value, encoding=ENCODING), key=item.key)
 
 
