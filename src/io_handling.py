@@ -1,7 +1,7 @@
 import os
 from typing import BinaryIO
 
-from src.database_item import DatabaseItem
+from src.item import Item
 from src.io_utils import encode, decode
 
 
@@ -36,7 +36,7 @@ class ActiveFile(File):
     def __init__(self, path: str):
         super().__init__(path=path, mode="w")
 
-    def _append(self, item: DatabaseItem) -> File.Offset:
+    def _append(self, item: Item) -> File.Offset:
         self.file.write(encode(item.metadata))
         self.file.write(encode(item.key))
         value_position_offset = self._current_offset
@@ -53,7 +53,7 @@ class ActiveFile(File):
     def size(self) -> File.Offset:
         return self._current_offset
 
-    def append(self, item: DatabaseItem) -> File.Offset:
+    def append(self, item: Item) -> File.Offset:
         return self._append(item=item)
 
     def close(self) -> None:

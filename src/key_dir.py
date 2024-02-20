@@ -1,6 +1,6 @@
 from collections import namedtuple
 
-from src.database_item import DatabaseItem
+from src.item import Item
 from src.io_handling import File
 
 
@@ -14,7 +14,7 @@ class KeyDir:
 
     def update(
         self,
-        key: DatabaseItem.Key,
+        key: Item.Key,
         file_path: str,
         value_position: File.Offset,
         value_size: int,
@@ -33,5 +33,5 @@ class KeyDir:
                     value_size=key_dir_entry.value_size,
                 )
 
-    def get(self, key: DatabaseItem.Key):
+    def get(self, key: Item.Key):
         return self.content[key] if key in self.content else None

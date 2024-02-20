@@ -3,7 +3,7 @@ from time import time
 from src.io_utils import encode
 
 
-class DatabaseItem:
+class Item:
     Key = str
     Value = str
 

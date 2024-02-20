@@ -1,11 +1,11 @@
 from time import time
 
-from src.database_item import DatabaseItem
+from src.item import Item
 from src.io_handling import ActiveFile, File
 from src.key_dir import KeyDir
 
 
-class Database:
+class StorageEngine:
     DEFAULT_DIRECTORY = "./datafiles/default/"
     DEFAULT_MAX_FILE_SIZE = 150
 
@@ -28,7 +28,7 @@ class Database:
         )
         self.active_file = ActiveFile(self.active_file_path)
 
-    def _append_to_active_file(self, item: DatabaseItem) -> File.Offset:
+    def _append_to_active_file(self, item: Item) -> File.Offset:
         new_line_size = len(item.metadata) + item.key_size + item.value_size
         expected_file_size = self.active_file.size + new_line_size
         is_active_file_too_big = expected_file_size > self.max_file_size
@@ -43,13 +43,12 @@ class Database:
     # ~~~ API
     # ~~~~~~~~~~~~~~~~~~~
 
-    def append(self, key: DatabaseItem.Key, value: DatabaseItem.Value):
+    def append(self, key: Item.Key, value: Item.Value):
         """When appending, we need to have an operation that atomically performs the following two things:
         1. Append the key-value pair to the currently active file
         2. Add the key to the keyDir in-memory structure.
         """
-        # TODO: think about a way to encapsulate these two in an atomic operation so that either both or none is performed!
-        item = DatabaseItem(key=key, value=value)
+        item = Item(key=key, value=value)
         active_file_value_position_offset = self._append_to_active_file(item)
         self.key_dir.update(
             key=key,
@@ -58,7 +57,7 @@ class Database:
             value_size=item.value_size,
         )
 
-    def get(self, key: DatabaseItem.Key) -> DatabaseItem.Value or None:
+    def get(self, key: Item.Key) -> Item.Value or None:
         """Returns the value for the key searched.
         If there is no such key in the database, returns None.
         """
