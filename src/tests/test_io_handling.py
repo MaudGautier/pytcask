@@ -4,7 +4,7 @@ from src.fixtures.database import (
     db_with_only_active_file_key_value_pairs,
     db_with_only_active_file,
 )
-from src.io_handling import Storable, File, ENCODING
+from src.io_handling import Storable, File, ENCODING, ReadableFile
 
 TEST_DIRECTORY = "./datafiles/test_io_handling"
 
@@ -24,13 +24,14 @@ def test_can_decode_encoded_data():
 @pytest.mark.parametrize("db_with_only_active_file", [TEST_DIRECTORY], indirect=True)
 def test_tmp(db_with_only_active_file):
     database = db_with_only_active_file
-    file = File(
-        database.active_file_path, mode="r"
-    )  # TODO: should not have to pass mode I think
+    file = ReadableFile(database.active_file_path)
     i = 0
     for item in file:
         assert item.key == db_with_only_active_file_key_value_pairs[i][0]
         assert item.value == bytes(
-            db_with_only_active_file_key_value_pairs[i][1], encoding=ENCODING
+            db_with_only_active_file_key_value_pairs[i][1],
+            encoding=ENCODING,
+            # TODO: Should not have to pass encoding here
+            #  Refactor with storage engine only dealing with bytes in and out
         )
         i += 1

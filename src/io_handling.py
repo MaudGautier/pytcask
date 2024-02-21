@@ -132,10 +132,17 @@ class File:
         return os.path.getctime(self.path) < os.path.getctime(other.path)
 
 
-class ActiveFile(File):
+class ReadableFile(File):
+    def __init__(self, path: str):
+        super().__init__(path=path, mode="r")
+
+
+class WritableFile(File):
     def __init__(self, path: str):
         super().__init__(path=path, mode="w")
 
+
+class ActiveFile(WritableFile):
     def _append(self, storable: Storable) -> File.Offset:
         self.file.write(storable.to_bytes())
         offset = self.file.tell()
@@ -163,6 +170,5 @@ class ActiveFile(File):
         os.rename(src=self.path, dst=new_path)
 
 
-class ImmutableFile(File):
-    def __init__(self, path: str):
-        super().__init__(path=path, mode="r")
+class ImmutableFile(ReadableFile):
+    pass
