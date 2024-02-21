@@ -1,7 +1,7 @@
 import os
 import struct
 from datetime import datetime
-from typing import BinaryIO
+from typing import BinaryIO, Iterator
 
 from src.item import Item
 
@@ -110,6 +110,22 @@ class File:
         """Opens or creates a file in binary mode (depending on the mode passed)"""
         self.ensure_directory_exists(self.path)
         return open(self.path, mode=f"{mode}b")
+
+    def __iter__(self) -> Iterator[Storable]:
+        file_size = os.path.getsize(self.path)
+        with open(self.path, "rb") as file:
+            # This means that the whole file is stored in memory at once. This is required because the size of the next
+            # chunk depends on the size of the key and values (which we can't know before consuming the next bytes).
+            # Another approach would have been to read a given chunk size that is larger than necessary (but smaller
+            # than the whole file). But that would make the code much more complex and it is not necessary here.
+            # So I opted for simplicity.
+            data = file.read()
+            offset = 0
+            while offset < file_size:
+                stored_item = Storable.from_bytes(data[offset:])
+                chunk_size = stored_item.size
+                offset += chunk_size
+                yield stored_item
 
 
 class ActiveFile(File):
