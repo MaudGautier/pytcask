@@ -127,6 +127,10 @@ class File:
                 offset += chunk_size
                 yield stored_item
 
+    def __lt__(self, other):
+        """Files are sorted based on their creation date"""
+        return os.path.getctime(self.path) < os.path.getctime(other.path)
+
 
 class ActiveFile(File):
     def __init__(self, path: str):
