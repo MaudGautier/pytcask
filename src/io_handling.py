@@ -131,6 +131,13 @@ class File:
         """Files are sorted based on their creation date"""
         return os.path.getctime(self.path) < os.path.getctime(other.path)
 
+    def discard(self):
+        """Discards the file"""
+        os.remove(self.path)
+
+    def close(self):
+        self.file.close()
+
 
 class ReadableFile(File):
     def __init__(self, path: str):
@@ -140,6 +147,17 @@ class ReadableFile(File):
 class WritableFile(File):
     def __init__(self, path: str):
         super().__init__(path=path, mode="w")
+
+    def fill_from_in_memory_hashmap(self, hashmap):
+        for _, row in hashmap.items():
+            self.file.write(row)
+
+
+class MergedFile(WritableFile):
+    def __init__(self, store_path: str):
+        timestamp = int(datetime.timestamp(datetime.now()))
+        file_path = f"{store_path}/merged-{timestamp}.data"
+        super().__init__(path=file_path)
 
 
 class ActiveFile(WritableFile):
