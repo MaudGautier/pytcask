@@ -23,7 +23,7 @@ class StorageEngine:
 
     def _generate_new_active_file(self) -> None:
         # Using time in nanoseconds to avoid filename collisions
-        timestamp_in_ns = int(time() * 1000000)
+        timestamp_in_ns = int(time() * 1_000_000)
         immutable_file_path = f"{self.directory}/{timestamp_in_ns}.txt"
         self.active_file.convert_to_immutable(new_path=immutable_file_path)
         self.key_dir.update_file_path(

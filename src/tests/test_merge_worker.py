@@ -6,7 +6,7 @@ from src.fixtures.database import (
     db_with_only_active_file,
     db_with_only_active_file_key_value_pairs,
 )
-from src.io_handling import ReadableFile, ENCODING
+from src.io_handling import ReadableFile
 from src.merge_worker import MergeWorker
 
 TEST_DIRECTORY = "./datafiles/test_merger"
