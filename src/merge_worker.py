@@ -72,8 +72,7 @@ class MergeWorker:
         merged_file.close()
 
         # Step 2.c: Update KEY_DIR
-        # TODO: replace __iter__ method on this
-        for key, entry in merged_file_key_dir.entries.items():
+        for key, entry in merged_file_key_dir:
             # Update in key_dir only those that were searched for in one of the merged files
             # NB: An alternative way to do this would be to compare the timestamps and update the entries that have not
             # been updated more recently. However, timestamps in seconds does not give enough granularity here.

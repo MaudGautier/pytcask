@@ -1,4 +1,5 @@
 from collections import namedtuple
+from typing import Iterator
 
 from src.item import Item
 
@@ -10,6 +11,9 @@ class KeyDir:
 
     def __init__(self):
         self.entries = {}
+
+    def __iter__(self) -> Iterator[KeyDirEntry]:
+        return iter(zip(self.entries.keys(), self.entries.values()))
 
     def update(
         self,
@@ -27,7 +31,7 @@ class KeyDir:
         )
 
     def update_file_path(self, previous_path: str, new_path: str) -> None:
-        for key, key_dir_entry in self.entries.items():
+        for key, key_dir_entry in self:
             if key_dir_entry.file_path == previous_path:
                 self.update(
                     key=key,
