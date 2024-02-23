@@ -27,10 +27,13 @@ class MergeWorker:
         self.store_path = store_path
 
     def _list_all_immutable_files(self) -> list[ReadableFile]:
-        all_files = os.listdir(self.store_path)
+        all_filenames = os.listdir(self.store_path)
         return [
-            ImmutableFile(file) for file in all_files if "active.txt" not in file
-        ]  # TODO: better handling of active name
+            ImmutableFile(path=f"{self.store_path}/{filename}")
+            for filename in all_filenames
+            if "active.txt" not in filename
+        ]
+        # TODO: better handling of active name
 
     def _merge_files(self, files: list[File]) -> MergedFile:
         """The merging process is as follows:

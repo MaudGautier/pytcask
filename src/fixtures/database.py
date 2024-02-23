@@ -38,7 +38,7 @@ db_with_multiple_immutable_files_key_value_pairs = [
 
 @pytest.fixture
 def db_with_multiple_immutable_files(request):
-    database = StorageEngine(directory=request.param, max_file_size=200)
+    database = StorageEngine(directory=request.param, max_file_size=70)
     for key, value in db_with_multiple_immutable_files_key_value_pairs:
         database.append(key=key, value=value)
     return database

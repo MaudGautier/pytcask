@@ -5,6 +5,7 @@ import pytest
 from src.fixtures.database import (
     db_with_only_active_file,
     db_with_only_active_file_key_value_pairs,
+    db_with_multiple_immutable_files,
 )
 from src.io_handling import ReadableFile
 from src.merge_worker import MergeWorker
@@ -30,7 +31,25 @@ def test_compact_keys_in_one_file(db_with_only_active_file):
     }
     for entry in merged_file:
         assert expected_values[entry.key] == entry.value
+    database.clear()
 
 
-# TODO: add tests when multiple files merged
-# TODO: add test on do_merge public method
+@pytest.mark.parametrize(
+    "db_with_multiple_immutable_files", [TEST_DIRECTORY], indirect=True
+)
+def test_merge_multiple_files_results_in_one(db_with_multiple_immutable_files):
+    # GIVEN
+    database = db_with_multiple_immutable_files
+    assert len(os.listdir(database.directory)) == 5  # Check multiple files are present
+    merge_worker = MergeWorker(store_path=database.directory)
+
+    # WHEN
+    merge_worker.do_merge()
+
+    # THEN — check that we have two files: the active one and the merged one
+    filenames = sorted(os.listdir(database.directory))
+    assert len(filenames) == 2
+    assert filenames[0] == "active.txt"
+    assert filenames[1].startswith("merged-")
+
+    database.clear()
