@@ -1,17 +1,20 @@
 import os
 
+import pytest
+
 from src.storage_engine import StorageEngine
+from src.fixtures.database import (
+    db_with_only_active_file,
+    db_with_multiple_immutable_files,
+)
 
 TEST_DIRECTORY = "./datafiles/test"
 
 
-def test_can_append_and_retrieve_keys_in_one_file():
+@pytest.mark.parametrize("db_with_only_active_file", [TEST_DIRECTORY], indirect=True)
+def test_can_append_and_retrieve_keys_in_one_file(db_with_only_active_file):
     # GIVEN
-    database = StorageEngine(directory=TEST_DIRECTORY, max_file_size=1000)
-    database.append(key="key1", value="value1")
-    database.append(key="key2", value="value2")
-    database.append(key="key1", value="another_value1")
-    database.append(key="key1", value="yet_another_value1")
+    database = db_with_only_active_file
 
     # WHEN
     value1 = database.get("key1")
@@ -20,28 +23,28 @@ def test_can_append_and_retrieve_keys_in_one_file():
     # THEN
     assert value1 == "yet_another_value1"
     assert value2 == "value2"
+    database.clear()
 
 
-def test_a_missing_key_returns_none():
+@pytest.mark.parametrize("db_with_only_active_file", [TEST_DIRECTORY], indirect=True)
+def test_a_missing_key_returns_none(db_with_only_active_file):
     # GIVEN
-    database = StorageEngine(directory=TEST_DIRECTORY, max_file_size=1000)
+    database = db_with_only_active_file
 
     # WHEN
-    value1 = database.get("key1")
+    value1 = database.get("missing_key")
 
     # THEN
     assert value1 is None
+    database.clear()
 
 
-def test_updates_and_retrievals_with_small_files():
+@pytest.mark.parametrize(
+    "db_with_multiple_immutable_files", [TEST_DIRECTORY], indirect=True
+)
+def test_updates_and_retrievals_with_small_files(db_with_multiple_immutable_files):
     # GIVEN
-    database = StorageEngine(directory=TEST_DIRECTORY, max_file_size=15)
-    database.append(key="key1", value="value1")
-    database.append(key="key2", value="value2")
-    database.append(key="key3", value="value3")
-    database.append(key="key1", value="another_value1")
-    database.append(key="key2", value="another_value2")
-    database.append(key="key1", value="yet_another_value1")
+    database = db_with_multiple_immutable_files
 
     # WHEN
     value1 = database.get("key1")
@@ -51,10 +54,11 @@ def test_updates_and_retrievals_with_small_files():
     # THEN
     assert value1 == "yet_another_value1"
     assert value2 == "another_value2"
-    assert value3 == "value3"
+    assert value3 == "my_value3"
+    database.clear()
 
 
-def test_clear_database():
+def test_clear_database(db_with_only_active_file):
     # GIVEN
     directory = TEST_DIRECTORY
     database = StorageEngine(directory=directory, max_file_size=15)
