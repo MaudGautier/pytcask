@@ -25,18 +25,16 @@ class MergeWorker:
 
     def __init__(
         self,
-        store_path: str,
         storage_engine: StorageEngine,
         max_file_size: int = DEFAULT_MAX_FILE_SIZE,
     ):
         self.max_file_size = max_file_size
-        self.store_path = store_path
         self.storage_engine = storage_engine
 
     def _list_all_immutable_files(self) -> list[ReadableFile]:
-        all_filenames = os.listdir(self.store_path)
+        all_filenames = os.listdir(self.storage_engine.directory)
         return [
-            ImmutableFile(path=f"{self.store_path}/{filename}")
+            ImmutableFile(path=f"{self.storage_engine.directory}/{filename}")
             for filename in all_filenames
             if "active.txt" not in filename
         ]
@@ -69,7 +67,7 @@ class MergeWorker:
 
         # Step 2.a: Flush to disk
         # TODO: should be done IF in mem size is bigger than max file size AND when we are done with parsing all files
-        merged_file = MergedFile(store_path=self.store_path)
+        merged_file = MergedFile(store_path=self.storage_engine.directory)
         merged_file_key_dir = merged_file.fill_from_in_memory_hashmap(hashmap=hashmap)
         merged_file.close()
 
@@ -90,9 +88,6 @@ class MergeWorker:
                 value_size=entry.value_size,
                 timestamp=entry.timestamp,
             )
-
-        # TODO: make sure I don't read from this file until it has been written down fully -- see this: https://stackoverflow.com/questions/489861/locking-a-file-in-python
-        # Note: it seems that if I don't close the file, then I can't read from it anyway. TODO: clarify this (+ add tests with multi-threading ??)
 
         # Step 2.d: Delete all files that have been merged together
         for file in files:

@@ -17,9 +17,7 @@ TEST_DIRECTORY = "./datafiles/test_merger"
 def test_compact_keys_in_one_file(db_with_only_active_file):
     # GIVEN
     database = db_with_only_active_file
-    merge_worker = MergeWorker(
-        store_path=database.directory, storage_engine=database
-    )  # TODO: REMOVE STORE_PATH
+    merge_worker = MergeWorker(storage_engine=database)
     file_to_merge = ReadableFile(database.active_file_path)
 
     # WHEN
@@ -43,7 +41,7 @@ def test_merge_multiple_files_results_in_one(db_with_multiple_immutable_files):
     # GIVEN
     database = db_with_multiple_immutable_files
     assert len(os.listdir(database.directory)) == 5  # Check multiple files are present
-    merge_worker = MergeWorker(store_path=database.directory, storage_engine=database)
+    merge_worker = MergeWorker(storage_engine=database)
 
     # WHEN
     merge_worker.do_merge()
@@ -64,7 +62,7 @@ def test_can_retrieve_correct_key_from_merged_file(db_with_multiple_immutable_fi
     # GIVEN
     database = db_with_multiple_immutable_files
     assert len(os.listdir(database.directory)) == 5  # Check multiple files are present
-    merge_worker = MergeWorker(store_path=database.directory, storage_engine=database)
+    merge_worker = MergeWorker(storage_engine=database)
 
     # WHEN
     merge_worker.do_merge()
