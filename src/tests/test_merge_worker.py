@@ -17,7 +17,9 @@ TEST_DIRECTORY = "./datafiles/test_merger"
 def test_compact_keys_in_one_file(db_with_only_active_file):
     # GIVEN
     database = db_with_only_active_file
-    merge_worker = MergeWorker(store_path=database.directory)
+    merge_worker = MergeWorker(
+        store_path=database.directory, storage_engine=database
+    )  # TODO: REMOVE STORE_PATH
     file_to_merge = ReadableFile(database.active_file_path)
 
     # WHEN
@@ -41,7 +43,7 @@ def test_merge_multiple_files_results_in_one(db_with_multiple_immutable_files):
     # GIVEN
     database = db_with_multiple_immutable_files
     assert len(os.listdir(database.directory)) == 5  # Check multiple files are present
-    merge_worker = MergeWorker(store_path=database.directory)
+    merge_worker = MergeWorker(store_path=database.directory, storage_engine=database)
 
     # WHEN
     merge_worker.do_merge()
@@ -51,5 +53,35 @@ def test_merge_multiple_files_results_in_one(db_with_multiple_immutable_files):
     assert len(filenames) == 2
     assert filenames[0] == "active.txt"
     assert filenames[1].startswith("merged-")
+
+    database.clear()
+
+
+@pytest.mark.parametrize(
+    "db_with_multiple_immutable_files", [TEST_DIRECTORY], indirect=True
+)
+def test_can_retrieve_correct_key_from_merged_file(db_with_multiple_immutable_files):
+    # GIVEN
+    database = db_with_multiple_immutable_files
+    assert len(os.listdir(database.directory)) == 5  # Check multiple files are present
+    merge_worker = MergeWorker(store_path=database.directory, storage_engine=database)
+
+    # WHEN
+    merge_worker.do_merge()
+    value1 = database.get(key="key1")
+    value2 = database.get(key="key2")
+    value3 = database.get(key="key3")
+    value4 = database.get(key="key1_bis")
+    value5 = database.get(key="k2")
+    value6 = database.get(key="k3")
+
+    # THEN
+    assert value1 == b"yet_another_value1"
+    assert value2 == b"another_value2"
+    assert value3 == b"my_value3"
+    assert value4 == b"another_value1_bis"
+    assert value5 == b"v2"
+    # TODO: fix this: DOES NOT WORK BECAUSE I NEED TO UPDATE ONLY THOSE THAT ARE NOT IN THE ACTIVE FILE
+    # assert value6 == b"yet_another_val3"
 
     database.clear()

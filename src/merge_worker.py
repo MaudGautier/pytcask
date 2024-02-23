@@ -17,14 +17,21 @@ Unclear thoughts:
 import os
 
 from src.io_handling import File, MergedFile, ReadableFile, ImmutableFile
+from src.storage_engine import StorageEngine
 
 
 class MergeWorker:
     DEFAULT_MAX_FILE_SIZE = 150
 
-    def __init__(self, store_path: str, max_file_size: int = DEFAULT_MAX_FILE_SIZE):
+    def __init__(
+        self,
+        store_path: str,
+        storage_engine: StorageEngine,
+        max_file_size: int = DEFAULT_MAX_FILE_SIZE,
+    ):
         self.max_file_size = max_file_size
         self.store_path = store_path
+        self.storage_engine = storage_engine
 
     def _list_all_immutable_files(self) -> list[ReadableFile]:
         all_filenames = os.listdir(self.store_path)
@@ -51,15 +58,29 @@ class MergeWorker:
         # Parsing files from oldest to most recent so that we always have the most up-to-date value in the hashmap
         for file in sorted(files):
             for stored_item in file:
-                hashmap[stored_item.key] = stored_item.to_bytes()
+                # TODO: this is coupled with fill_from_in_memory_hashmap
+                #  - should put both at the same place somehow to decouple !!
+                hashmap[stored_item.key] = {
+                    "content": stored_item.to_bytes(),
+                    "value_size": stored_item.value_size,
+                    "value_position_in_row": stored_item.value_position,
+                }
 
         # Step 2.a: Flush to disk
         # TODO: should be done IF in mem size is bigger than max file size AND when we are done with parsing all files
         merged_file = MergedFile(store_path=self.store_path)
-        merged_file.fill_from_in_memory_hashmap(hashmap=hashmap)
+        merged_file_key_dir = merged_file.fill_from_in_memory_hashmap(hashmap=hashmap)
         merged_file.close()
 
-        # Step 2.c:
+        # Step 2.c: Update KEY_DIR
+        for key, entry in merged_file_key_dir.entries.items():
+            self.storage_engine.key_dir.update(
+                key=key,
+                file_path=entry.file_path,
+                value_position=entry.value_position,
+                value_size=entry.value_size,
+            )
+
         # TODO: make sure I don't read from this file until it has been written down fully -- see this: https://stackoverflow.com/questions/489861/locking-a-file-in-python
         # Note: it seems that if I don't close the file, then I can't read from it anyway. TODO: clarify this (+ add tests with multi-threading ??)
 

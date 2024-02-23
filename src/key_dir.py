@@ -1,7 +1,6 @@
 from collections import namedtuple
 
 from src.item import Item
-from src.io_handling import File
 
 
 class KeyDir:
@@ -16,7 +15,7 @@ class KeyDir:
         self,
         key: Item.Key,
         file_path: str,
-        value_position: File.Offset,
+        value_position: int,  # TO avoid circular import # TODO: improve ??? File.Offset,
         value_size: int,
     ) -> None:
         self.entries[key] = self.KeyDirEntry(

@@ -4,6 +4,7 @@ from datetime import datetime
 from typing import BinaryIO, Iterator
 
 from src.item import Item
+from src.key_dir import KeyDir
 
 ENCODING = "utf-8"
 NB_BYTES_INTEGER = 4
@@ -24,6 +25,10 @@ class StoredItem:
     def value_size(self) -> int:
         # Offset in bytes = number of bytes (because self.value is in bytes)
         return len(self.value)
+
+    @property
+    def value_position(self) -> int:
+        return len(self.encoded_metadata) + len(self.encoded_key)
 
     @property
     def key_size(self) -> int:
@@ -146,9 +151,28 @@ class WritableFile(File):
     def __init__(self, path: str):
         super().__init__(path=path, mode="w")
 
-    def fill_from_in_memory_hashmap(self, hashmap):
-        for _, row in hashmap.items():
-            self.file.write(row)
+    # TODO: here is the structure of the hashmap in entry. TODO: should not have this coupled with merge worker
+    # hashmap[stored_item.key] = {
+    #     "content": stored_item.to_bytes(),
+    #     "value_size": stored_item.value_size,
+    #     "value_position_in_row": stored_item.value_position,
+    # }
+    def fill_from_in_memory_hashmap(self, hashmap: dict) -> KeyDir:
+        file_key_dir = (
+            KeyDir()
+        )  # {"key1": ("file_path", "value_position", "value_size")}
+        offset = 0
+        for key, entry in hashmap.items():
+            nb_bytes_written = self.file.write(entry["content"])
+            file_key_dir.update(
+                file_path=self.path,
+                value_size=entry["value_size"],
+                value_position=offset + entry["value_position_in_row"],
+                key=key,
+            )
+            offset += nb_bytes_written
+
+        return file_key_dir
 
 
 class MergedFile(WritableFile):
