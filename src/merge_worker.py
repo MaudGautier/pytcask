@@ -36,9 +36,9 @@ class MergeWorker:
         return [
             ImmutableFile(path=f"{self.storage_engine.directory}/{filename}")
             for filename in all_filenames
-            if "active.txt" not in filename
+            if self.storage_engine.active_file.path
+            != f"{self.storage_engine.directory}/{filename}"
         ]
-        # TODO: better handling of active name
 
     def _merge_files(self, files: list[File]) -> MergedFile:
         """The merging process is as follows:

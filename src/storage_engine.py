@@ -16,8 +16,7 @@ class StorageEngine:
         max_file_size: int = DEFAULT_MAX_FILE_SIZE,
     ):
         self.directory = directory
-        self.active_file_path = f"{self.directory}/active.txt"
-        self.active_file = ActiveFile(path=self.active_file_path)
+        self.active_file = ActiveFile(path=f"{self.directory}/active.txt")
         self.key_dir = KeyDir()
         self.max_file_size = max_file_size
 
@@ -27,9 +26,9 @@ class StorageEngine:
         immutable_file_path = f"{self.directory}/{timestamp_in_ns}.txt"
         self.active_file.convert_to_immutable(new_path=immutable_file_path)
         self.key_dir.update_file_path(
-            previous_path=self.active_file_path, new_path=immutable_file_path
+            previous_path=self.active_file.path, new_path=immutable_file_path
         )
-        self.active_file = ActiveFile(self.active_file_path)
+        self.active_file = ActiveFile(self.active_file.path)
 
     def _append_to_active_file(self, stored_item: StoredItem) -> File.Offset:
         new_line_size = stored_item.size
@@ -58,7 +57,7 @@ class StorageEngine:
         )
         self.key_dir.update(
             key=key,
-            file_path=self.active_file_path,
+            file_path=self.active_file.path,
             value_position=active_file_value_position_offset,
             value_size=stored_item.value_size,
             timestamp=stored_item.timestamp,

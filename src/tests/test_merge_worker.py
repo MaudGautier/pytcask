@@ -18,7 +18,7 @@ def test_compact_keys_in_one_file(db_with_only_active_file):
     # GIVEN
     database = db_with_only_active_file
     merge_worker = MergeWorker(storage_engine=database)
-    file_to_merge = ReadableFile(database.active_file_path)
+    file_to_merge = ReadableFile(database.active_file.path)
 
     # WHEN
     merged_file = merge_worker._merge_files(files=[file_to_merge])
@@ -80,5 +80,24 @@ def test_can_retrieve_correct_key_from_merged_file(db_with_multiple_immutable_fi
     assert value4 == b"another_value1_bis"
     assert value5 == b"v2"
     assert value6 == b"yet_another_val3"
+
+    database.clear()
+
+
+@pytest.mark.parametrize(
+    "db_with_multiple_immutable_files", [TEST_DIRECTORY], indirect=True
+)
+def test_list_immutable_files_does_not_return_active_file(
+    db_with_multiple_immutable_files,
+):
+    # GIVEN
+    database = db_with_multiple_immutable_files
+    merge_worker = MergeWorker(storage_engine=database)
+
+    # WHEN
+    immutable_files = merge_worker._list_all_immutable_files()
+
+    # THEN
+    assert database.active_file not in immutable_files
 
     database.clear()
