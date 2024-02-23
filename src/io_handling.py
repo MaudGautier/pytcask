@@ -179,8 +179,9 @@ class WritableFile(File):
 
 class MergedFile(WritableFile):
     def __init__(self, store_path: str):
-        timestamp = int(datetime.timestamp(datetime.now()))
-        file_path = f"{store_path}/merged-{timestamp}.data"
+        # Using timestamp in nanoseconds to avoid name collisions
+        timestamp_in_ns = int(datetime.timestamp(datetime.now()) * 1_000_000)
+        file_path = f"{store_path}/merged-{timestamp_in_ns}.data"
         super().__init__(path=file_path)
 
 

@@ -21,13 +21,17 @@ from src.storage_engine import StorageEngine
 
 
 class MergeWorker:
-    DEFAULT_MAX_FILE_SIZE = 150
+    DEFAULT_MAX_FILE_SIZE = 1000
 
     def __init__(
         self,
         storage_engine: StorageEngine,
         max_file_size: int = DEFAULT_MAX_FILE_SIZE,
     ):
+        # NB: This is not really a max file size - this is rather an indicative threshold defining when a new merged
+        # file should be created (once the threshold is crossed, we create a new merged file, but the current merged
+        # file is still bigger than that threshold)
+        # That is a very minor problem => I decided not to handle it (finding a better name should be enough)
         self.max_file_size = max_file_size
         self.storage_engine = storage_engine
 
@@ -40,33 +44,8 @@ class MergeWorker:
             != f"{self.storage_engine.directory}/{filename}"
         ]
 
-    def _merge_files(self, files: list[File]) -> MergedFile:
-        """The merging process is as follows:
-        1. Read all input files and write only the most recent key for each (i.e. keep in memory to know which has
-        already been written)
-        2. Whenever the merge file gets bigger than the max file size OR when we are done parsing all files:
-            2.a. Flush to disk (i.e. write hashmap to new merged file)
-            2.b. Add the hint file next to it
-            2.c. Now that the file is ready, we can read from it => update KEY_DIR to reflect the new positions
-            2.d. Delete all files that were used in the merging process
-            2.e. If there are remaining files to parse, repeat step 2
-        """
-        # Step 1: Store file info in hashmap
-        hashmap = {}
-        # Parsing files from oldest to most recent so that we always have the most up-to-date value in the hashmap
-        for file in sorted(files):
-            for stored_item in file:
-                # TODO: this is coupled with fill_from_in_memory_hashmap
-                #  - should put both at the same place somehow to decouple !!
-                hashmap[stored_item.key] = {
-                    "content": stored_item.to_bytes(),
-                    "value_size": stored_item.value_size,
-                    "value_position_in_row": stored_item.value_position,
-                    "timestamp": stored_item.timestamp,
-                }
-
+    def _flush_in_merge_file(self, hashmap, files) -> MergedFile:
         # Step 2.a: Flush to disk
-        # TODO: should be done IF in mem size is bigger than max file size AND when we are done with parsing all files
         merged_file = MergedFile(store_path=self.storage_engine.directory)
         merged_file_key_dir = merged_file.fill_from_in_memory_hashmap(hashmap=hashmap)
         merged_file.close()
@@ -93,6 +72,51 @@ class MergeWorker:
             file.discard()
 
         return merged_file
+
+    def _merge_files(self, files: list[File]) -> list[MergedFile]:
+        """The merging process is as follows:
+        1. Read all input files and write only the most recent key for each (i.e. keep in memory to know which has
+        already been written)
+        2. Whenever the merge file gets bigger than the max file size OR when we are done parsing all files:
+            2.a. Flush to disk (i.e. write hashmap to new merged file)
+            2.b. Add the hint file next to it
+            2.c. Now that the file is ready, we can read from it => update KEY_DIR to reflect the new positions
+            2.d. Delete all files that were used in the merging process
+            2.e. If there are remaining files to parse, repeat step 2
+        """
+        # Step 1: Store file info in hashmap
+        hashmap = {}
+        files_being_merged = []
+        merged_files = []
+        # Parsing files from oldest to most recent so that we always have the most up-to-date value in the hashmap
+        for file in sorted(files):
+            files_being_merged.append(file)
+            for stored_item in file:
+                # TODO: this is coupled with fill_from_in_memory_hashmap
+                #  - should put both at the same place somehow to decouple !!
+                hashmap[stored_item.key] = {
+                    "content": stored_item.to_bytes(),
+                    "value_size": stored_item.value_size,
+                    "value_position_in_row": stored_item.value_position,
+                    "timestamp": stored_item.timestamp,
+                }
+            merged_file_size = sum(len(value["content"]) for value in hashmap.values())
+
+            if merged_file_size >= self.max_file_size:
+                merged_file = self._flush_in_merge_file(
+                    hashmap=hashmap, files=files_being_merged
+                )
+                merged_files.append(merged_file)
+                files_being_merged = []
+                hashmap = {}
+            else:
+                continue
+
+        last_merged_file = self._flush_in_merge_file(
+            hashmap=hashmap, files=files_being_merged
+        )
+        merged_files.append(last_merged_file)
+        return merged_files
 
     # ~~~~~~~~~~~~~~~~~~~
     # ~~~ API
