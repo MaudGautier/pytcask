@@ -156,11 +156,12 @@ class WritableFile(File):
     #     "content": stored_item.to_bytes(),
     #     "value_size": stored_item.value_size,
     #     "value_position_in_row": stored_item.value_position,
+    #     "timestamp": stored_item.timestamp,
     # }
     def fill_from_in_memory_hashmap(self, hashmap: dict) -> KeyDir:
         file_key_dir = (
             KeyDir()
-        )  # {"key1": ("file_path", "value_position", "value_size")}
+        )  # {"key1": ("file_path", "value_position", "value_size", "timestamp)}
         offset = 0
         for key, entry in hashmap.items():
             nb_bytes_written = self.file.write(entry["content"])
@@ -169,6 +170,7 @@ class WritableFile(File):
                 value_size=entry["value_size"],
                 value_position=offset + entry["value_position_in_row"],
                 key=key,
+                timestamp=entry["timestamp"],
             )
             offset += nb_bytes_written
 

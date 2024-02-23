@@ -61,6 +61,7 @@ class StorageEngine:
             file_path=self.active_file_path,
             value_position=active_file_value_position_offset,
             value_size=stored_item.value_size,
+            timestamp=stored_item.timestamp,
         )
 
     def get(self, key: Item.Key) -> Item.Value or None:

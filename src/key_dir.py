@@ -5,7 +5,7 @@ from src.item import Item
 
 class KeyDir:
     KeyDirEntry = namedtuple(
-        "KeyDirEntry", ["file_path", "value_position", "value_size"]
+        "KeyDirEntry", ["file_path", "value_position", "value_size", "timestamp"]
     )
 
     def __init__(self):
@@ -17,9 +17,13 @@ class KeyDir:
         file_path: str,
         value_position: int,  # TO avoid circular import # TODO: improve ??? File.Offset,
         value_size: int,
+        timestamp: int,
     ) -> None:
         self.entries[key] = self.KeyDirEntry(
-            file_path=file_path, value_position=value_position, value_size=value_size
+            file_path=file_path,
+            value_position=value_position,
+            value_size=value_size,
+            timestamp=timestamp,
         )
 
     def update_file_path(self, previous_path: str, new_path: str) -> None:
@@ -30,6 +34,7 @@ class KeyDir:
                     file_path=new_path,
                     value_position=key_dir_entry.value_position,
                     value_size=key_dir_entry.value_size,
+                    timestamp=key_dir_entry.timestamp,
                 )
 
     def get(self, key: Item.Key) -> KeyDirEntry or None:

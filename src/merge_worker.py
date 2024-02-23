@@ -64,6 +64,7 @@ class MergeWorker:
                     "content": stored_item.to_bytes(),
                     "value_size": stored_item.value_size,
                     "value_position_in_row": stored_item.value_position,
+                    "timestamp": stored_item.timestamp,
                 }
 
         # Step 2.a: Flush to disk
@@ -73,12 +74,14 @@ class MergeWorker:
         merged_file.close()
 
         # Step 2.c: Update KEY_DIR
+        # TODO: replace __iter__ method on this
         for key, entry in merged_file_key_dir.entries.items():
             self.storage_engine.key_dir.update(
                 key=key,
                 file_path=entry.file_path,
                 value_position=entry.value_position,
                 value_size=entry.value_size,
+                timestamp=entry.timestamp,
             )
 
         # TODO: make sure I don't read from this file until it has been written down fully -- see this: https://stackoverflow.com/questions/489861/locking-a-file-in-python
