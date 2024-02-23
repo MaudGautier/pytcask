@@ -80,7 +80,7 @@ class StoredItem:
 
     @classmethod
     def from_item(cls, item: Item) -> "StoredItem":
-        return cls(value=bytes(item.value, encoding=ENCODING), key=item.key)
+        return cls(value=item.value, key=item.key)
 
 
 class File:
@@ -92,13 +92,11 @@ class File:
         self.file: BinaryIO = self.get_file(mode=mode)
 
     @staticmethod
-    def read(path: str, start: int, end: int) -> str:
+    def read(path: str, start: int, end: int) -> bytes:
         with open(path, "rb") as file:
             file.seek(start)
             value = file.read(end - start)
-            # The following is true only for string values (or could be value.decode(ENCODING) as well)
-            # TODO: handle other cases as well (integer values for example) + add tests
-            return str(value, encoding=ENCODING)
+            return value
 
     @staticmethod
     def ensure_directory_exists(file_path) -> None:

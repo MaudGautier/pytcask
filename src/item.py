@@ -1,6 +1,6 @@
 class Item:
     Key = str
-    Value = str
+    Value = bytes
 
     def __init__(self, key: Key, value: Value):
         self.key = key

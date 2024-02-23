@@ -21,8 +21,8 @@ def test_can_append_and_retrieve_keys_in_one_file(db_with_only_active_file):
     value2 = database.get("key2")
 
     # THEN
-    assert value1 == "yet_another_value1"
-    assert value2 == "value2"
+    assert value1 == b"yet_another_value1"
+    assert value2 == b"value2"
     database.clear()
 
 
@@ -52,19 +52,19 @@ def test_updates_and_retrievals_with_small_files(db_with_multiple_immutable_file
     value3 = database.get("key3")
 
     # THEN
-    assert value1 == "yet_another_value1"
-    assert value2 == "another_value2"
-    assert value3 == "my_value3"
+    assert value1 == b"yet_another_value1"
+    assert value2 == b"another_value2"
+    assert value3 == b"my_value3"
     database.clear()
 
 
-def test_clear_database(db_with_only_active_file):
+def test_clear_database():
     # GIVEN
     directory = TEST_DIRECTORY
     database = StorageEngine(directory=directory, max_file_size=15)
-    database.append(key="key1", value="value1")
-    database.append(key="key2", value="another_value2")
-    database.append(key="key1", value="yet_another_value1")
+    database.append(key="key1", value=b"value1")
+    database.append(key="key2", value=b"another_value2")
+    database.append(key="key1", value=b"yet_another_value1")
 
     # WHEN/THEN
     all_files = os.listdir(directory)
@@ -79,7 +79,7 @@ def test_clear_database_and_directory():
     # GIVEN
     directory = TEST_DIRECTORY
     database = StorageEngine(directory=directory, max_file_size=15)
-    database.append(key="key1", value="yet_another_value1")
+    database.append(key="key1", value=b"yet_another_value1")
 
     # WHEN/THEN
     all_files = os.listdir(directory)

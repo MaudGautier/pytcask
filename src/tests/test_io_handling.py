@@ -28,10 +28,5 @@ def test_tmp(db_with_only_active_file):
     i = 0
     for item in file:
         assert item.key == db_with_only_active_file_key_value_pairs[i][0]
-        assert item.value == bytes(
-            db_with_only_active_file_key_value_pairs[i][1],
-            encoding=ENCODING,
-            # TODO: Should not have to pass encoding here
-            #  Refactor with storage engine only dealing with bytes in and out
-        )
+        assert item.value == db_with_only_active_file_key_value_pairs[i][1]
         i += 1

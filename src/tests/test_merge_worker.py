@@ -29,5 +29,8 @@ def test_compact_keys_in_one_file(db_with_only_active_file):
         key: value for key, value in db_with_only_active_file_key_value_pairs
     }
     for entry in merged_file:
-        # TODO: I should not have to decode here, need to refactor storage engine
-        assert bytes(expected_values[entry.key], encoding=ENCODING) == entry.value
+        assert expected_values[entry.key] == entry.value
+
+
+# TODO: add tests when multiple files merged
+# TODO: add test on do_merge public method
