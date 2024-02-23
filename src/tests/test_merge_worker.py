@@ -81,7 +81,6 @@ def test_can_retrieve_correct_key_from_merged_file(db_with_multiple_immutable_fi
     assert value3 == b"my_value3"
     assert value4 == b"another_value1_bis"
     assert value5 == b"v2"
-    # TODO: fix this: DOES NOT WORK BECAUSE I NEED TO UPDATE ONLY THOSE THAT ARE NOT IN THE ACTIVE FILE
-    # assert value6 == b"yet_another_val3"
+    assert value6 == b"yet_another_val3"
 
     database.clear()

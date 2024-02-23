@@ -76,6 +76,13 @@ class MergeWorker:
         # Step 2.c: Update KEY_DIR
         # TODO: replace __iter__ method on this
         for key, entry in merged_file_key_dir.entries.items():
+            # Update in key_dir only those that were searched for in one of the merged files
+            # NB: An alternative way to do this would be to compare the timestamps and update the entries that have not
+            # been updated more recently. However, timestamps in seconds does not give enough granularity here.
+            if self.storage_engine.key_dir.get(key).file_path not in [
+                file.path for file in files
+            ]:
+                continue
             self.storage_engine.key_dir.update(
                 key=key,
                 file_path=entry.file_path,
