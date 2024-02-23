@@ -2,7 +2,7 @@ import os
 from time import time
 
 from src.item import Item
-from src.io_handling import ActiveFile, File, Storable
+from src.io_handling import ActiveFile, File, StoredItem
 from src.key_dir import KeyDir
 
 
@@ -31,15 +31,15 @@ class StorageEngine:
         )
         self.active_file = ActiveFile(self.active_file_path)
 
-    def _append_to_active_file(self, storable: Storable) -> File.Offset:
-        new_line_size = storable.size
+    def _append_to_active_file(self, stored_item: StoredItem) -> File.Offset:
+        new_line_size = stored_item.size
         expected_file_size = self.active_file.size + new_line_size
         is_active_file_too_big = expected_file_size > self.max_file_size
 
         if is_active_file_too_big:
             self._generate_new_active_file()
 
-        value_position_offset = self.active_file.append(storable=storable)
+        value_position_offset = self.active_file.append(stored_item=stored_item)
         return value_position_offset
 
     # ~~~~~~~~~~~~~~~~~~~
@@ -52,13 +52,15 @@ class StorageEngine:
         2. Add the key to the keyDir in-memory structure.
         """
         item = Item(key=key, value=value)
-        storable = Storable.from_item(item=item)
-        active_file_value_position_offset = self._append_to_active_file(storable)
+        stored_item = StoredItem.from_item(item=item)
+        active_file_value_position_offset = self._append_to_active_file(
+            stored_item=stored_item
+        )
         self.key_dir.update(
             key=key,
             file_path=self.active_file_path,
             value_position=active_file_value_position_offset,
-            value_size=storable.value_size,
+            value_size=stored_item.value_size,
         )
 
     def get(self, key: Item.Key) -> Item.Value or None:

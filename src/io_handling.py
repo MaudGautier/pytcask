@@ -9,7 +9,7 @@ ENCODING = "utf-8"
 NB_BYTES_INTEGER = 4
 
 
-class Storable:
+class StoredItem:
     def __init__(
         self,
         key: str,
@@ -57,7 +57,7 @@ class Storable:
         return encoded_metadata + encoded_key + encoded_value
 
     @classmethod
-    def from_bytes(cls, data: bytes) -> "Storable":
+    def from_bytes(cls, data: bytes) -> "StoredItem":
         # metadata_offset is the number of bytes expected in the metadata
         metadata_offset = 3 * NB_BYTES_INTEGER
         timestamp, key_size, value_size = struct.unpack("iii", data[:metadata_offset])
@@ -79,7 +79,7 @@ class Storable:
         return f"{self.key}:{self.value.decode(ENCODING)} ({self.timestamp})"
 
     @classmethod
-    def from_item(cls, item: Item) -> "Storable":
+    def from_item(cls, item: Item) -> "StoredItem":
         return cls(value=bytes(item.value, encoding=ENCODING), key=item.key)
 
 
@@ -111,7 +111,7 @@ class File:
         self.ensure_directory_exists(self.path)
         return open(self.path, mode=f"{mode}b")
 
-    def __iter__(self) -> Iterator[Storable]:
+    def __iter__(self) -> Iterator[StoredItem]:
         file_size = os.path.getsize(self.path)
         with open(self.path, "rb") as file:
             # This means that the whole file is stored in memory at once. This is required because the size of the next
@@ -122,7 +122,7 @@ class File:
             data = file.read()
             offset = 0
             while offset < file_size:
-                stored_item = Storable.from_bytes(data[offset:])
+                stored_item = StoredItem.from_bytes(data[offset:])
                 chunk_size = stored_item.size
                 offset += chunk_size
                 yield stored_item
@@ -161,11 +161,11 @@ class MergedFile(WritableFile):
 
 
 class ActiveFile(WritableFile):
-    def _append(self, storable: Storable) -> File.Offset:
-        self.file.write(storable.to_bytes())
+    def _append(self, stored_item: StoredItem) -> File.Offset:
+        self.file.write(stored_item.to_bytes())
         offset = self.file.tell()
         # WARNING: The following leaks info from storable to file which is not great
-        value_position_offset = offset - storable.value_size
+        value_position_offset = offset - stored_item.value_size
         self.file.flush()
         return value_position_offset
 
@@ -177,8 +177,8 @@ class ActiveFile(WritableFile):
     def size(self) -> File.Offset:
         return self._current_offset
 
-    def append(self, storable: Storable) -> File.Offset:
-        return self._append(storable=storable)
+    def append(self, stored_item: StoredItem) -> File.Offset:
+        return self._append(stored_item=stored_item)
 
     def close(self) -> None:
         self.file.close()
