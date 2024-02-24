@@ -149,3 +149,33 @@ def test_hint_files_are_not_processed_by_merge_worker(db_with_multiple_immutable
         assert not file.path.endswith(".hint")
 
     database.clear()
+
+
+@pytest.mark.parametrize(
+    "db_with_multiple_immutable_files", [TEST_DIRECTORY], indirect=True
+)
+def test_merge_process_uses_both_merged_and_new_immutable_files(
+    db_with_multiple_immutable_files,
+):
+    # GIVEN
+    database = db_with_multiple_immutable_files
+    assert len(os.listdir(database.directory)) == 5  # Check multiple files are present
+    merge_worker = MergeWorker(storage_engine=database, file_size_threshold=100)
+
+    # WHEN
+    merge_worker.do_merge()
+    database.append(key="new_key1", value=b"new_value1")
+    database.append(key="new_key2", value=b"new_value2")
+    database.append(key="new_key3", value=b"new_value3")
+    database.append(key="new_key4", value=b"new_value4")
+    database.append(key="new_key5", value=b"new_value5")
+
+    # THEN
+    files_to_merge = merge_worker._get_mergeable_files()
+    assert len(files_to_merge) == 4
+    already_merged = [file for file in files_to_merge if "merged-" in file.path]
+    assert len(already_merged) == 2
+    assert database.get(key="new_key3") == b"new_value3"
+    assert database.get(key="key1") == b"yet_another_value1"
+
+    database.clear()
