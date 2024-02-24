@@ -142,35 +142,50 @@ class File:
         self.file.close()
 
 
+class FileRow:
+    def __init__(
+        self,
+        content: bytes,
+        value_size: int,
+        value_position_in_row: int,
+        timestamp: int,
+    ):
+        self.content = content
+        self.value_size = value_size
+        self.value_position_in_row = value_position_in_row
+        self.timestamp = timestamp
+
+
 class ReadableFile(File):
     def __init__(self, path: str):
         super().__init__(path=path, mode="r")
+
+    def read_rows(self, file_rows: dict[str, FileRow]):
+        for stored_item in self:
+            file_rows[stored_item.key] = FileRow(
+                content=stored_item.to_bytes(),
+                value_size=stored_item.value_size,
+                value_position_in_row=stored_item.value_position,
+                timestamp=stored_item.timestamp,
+            )
+        return file_rows
 
 
 class WritableFile(File):
     def __init__(self, path: str):
         super().__init__(path=path, mode="w")
 
-    # TODO: here is the structure of the hashmap in entry. TODO: should not have this coupled with merge worker
-    # hashmap[stored_item.key] = {
-    #     "content": stored_item.to_bytes(),
-    #     "value_size": stored_item.value_size,
-    #     "value_position_in_row": stored_item.value_position,
-    #     "timestamp": stored_item.timestamp,
-    # }
-    def fill_from_in_memory_hashmap(self, hashmap: dict) -> KeyDir:
-        file_key_dir = (
-            KeyDir()
-        )  # {"key1": ("file_path", "value_position", "value_size", "timestamp)}
+    def flush_rows(self, file_rows: dict[str, FileRow]) -> KeyDir:
+        file_key_dir = KeyDir()
         offset = 0
-        for key, entry in hashmap.items():
-            nb_bytes_written = self.file.write(entry["content"])
+        for key, entry in file_rows.items():
+            nb_bytes_written = self.file.write(entry.content)
             file_key_dir.update(
                 file_path=self.path,
-                value_size=entry["value_size"],
-                value_position=offset + entry["value_position_in_row"],
+                value_size=entry.value_size,
+                value_position=offset + entry.value_position_in_row,
                 key=key,
-                timestamp=entry["timestamp"],
+                timestamp=entry.timestamp,
             )
             offset += nb_bytes_written
 

@@ -16,7 +16,13 @@ Unclear thoughts:
 
 import os
 
-from src.io_handling import File, MergedFile, ReadableFile, ImmutableFile
+from src.io_handling import (
+    File,
+    MergedFile,
+    ReadableFile,
+    ImmutableFile,
+    FileRow,
+)
 from src.storage_engine import StorageEngine
 
 
@@ -44,16 +50,18 @@ class MergeWorker:
             != f"{self.storage_engine.directory}/{filename}"
         ]
 
-    def _create_merge_file(self, hashmap, files: list[File]) -> MergedFile:
-        """
-        1. Flush to disk (i.e. write hashmap to new merged file)
+    def _create_merge_file(
+        self, file_rows: dict[str, FileRow], files: list[File]
+    ) -> MergedFile:
+        """The creation of a new merged file involves the following steps:
+        1. Flush rows to disk (i.e. write file_rows hashmap to new merged file)
         2. Add the hint file next to it
-        3. Now that the file is ready, we can read from it => update KEY_DIR to reflect the new positions
+        3. Now that the merged file is created, we can read from it => update KEY_DIR to reflect the new positions
         4. Delete all files that were used in the merging process
         """
         # Step 1: Flush to disk
         merged_file = MergedFile(store_path=self.storage_engine.directory)
-        merged_file_key_dir = merged_file.fill_from_in_memory_hashmap(hashmap=hashmap)
+        merged_file_key_dir = merged_file.flush_rows(file_rows=file_rows)
         merged_file.close()
 
         # Step 2: Update KEY_DIR
@@ -65,6 +73,7 @@ class MergeWorker:
                 file.path for file in files
             ]:
                 continue
+
             self.storage_engine.key_dir.update(
                 key=key,
                 file_path=entry.file_path,
@@ -79,13 +88,13 @@ class MergeWorker:
 
         return merged_file
 
-    def _merge_files(self, files: list[File]) -> list[MergedFile]:
+    def _merge_files(self, files: list[ReadableFile]) -> list[MergedFile]:
         """The merging process is as follows:
         1. Read input files and record only the most recent value for each key (by storing it in an in-memory hashmap)
         2. Whenever the merge file gets bigger than the max file size OR when we are done parsing all files, we flush
-        the hashmap to a new merged file.
+        the hashmap containing all file rows to a new merged file.
         """
-        hashmap = {}
+        file_rows = {}
         files_being_merged = []
         merged_files = []
         # Parsing files from oldest to most recent so that we always have the most up-to-date value in the hashmap
@@ -94,25 +103,17 @@ class MergeWorker:
         while files_to_merge:
             current_file = files_to_merge.pop(0)
             files_being_merged.append(current_file)
-            for stored_item in current_file:
-                # TODO: this is coupled with fill_from_in_memory_hashmap
-                #  - should put both at the same place somehow to decouple !!
-                hashmap[stored_item.key] = {
-                    "content": stored_item.to_bytes(),
-                    "value_size": stored_item.value_size,
-                    "value_position_in_row": stored_item.value_position,
-                    "timestamp": stored_item.timestamp,
-                }
-            merged_file_size = sum(len(value["content"]) for value in hashmap.values())
+            current_file.read_rows(file_rows=file_rows)
+            merged_file_size = sum(len(value.content) for value in file_rows.values())
 
-            # Once the threshold is crossed OR we have processed all files, we flush the hashmap to the merged file
+            # Once the threshold is crossed OR we have processed all files, we flush the rows to the merged file
             if merged_file_size >= self.file_size_threshold or len(files_to_merge) == 0:
                 merged_file = self._create_merge_file(
-                    hashmap=hashmap, files=files_being_merged
+                    file_rows=file_rows, files=files_being_merged
                 )
                 merged_files.append(merged_file)
                 files_being_merged = []
-                hashmap = {}
+                file_rows = {}
 
         return merged_files
 
