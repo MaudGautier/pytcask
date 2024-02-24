@@ -175,6 +175,14 @@ class WritableFile(File):
     def __init__(self, path: str):
         super().__init__(path=path, mode="w")
 
+
+class MergedFile(WritableFile):
+    def __init__(self, store_path: str):
+        # Using timestamp in nanoseconds to avoid name collisions
+        timestamp_in_ns = int(datetime.timestamp(datetime.now()) * 1_000_000)
+        file_path = f"{store_path}/merged-{timestamp_in_ns}.data"
+        super().__init__(path=file_path)
+
     def flush_rows(self, file_rows: dict[str, FileRow]) -> KeyDir:
         file_key_dir = KeyDir()
         offset = 0
@@ -190,14 +198,6 @@ class WritableFile(File):
             offset += nb_bytes_written
 
         return file_key_dir
-
-
-class MergedFile(WritableFile):
-    def __init__(self, store_path: str):
-        # Using timestamp in nanoseconds to avoid name collisions
-        timestamp_in_ns = int(datetime.timestamp(datetime.now()) * 1_000_000)
-        file_path = f"{store_path}/merged-{timestamp_in_ns}.data"
-        super().__init__(path=file_path)
 
 
 class ActiveFile(WritableFile):
