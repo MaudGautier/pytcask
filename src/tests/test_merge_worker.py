@@ -105,7 +105,7 @@ def test_creates_new_merge_file_when_full(db_with_multiple_immutable_files):
     # GIVEN
     database = db_with_multiple_immutable_files
     # assert len(os.listdir(database.directory)) == 5  # Check multiple files are present
-    merge_worker = MergeWorker(storage_engine=database, max_file_size=100)
+    merge_worker = MergeWorker(storage_engine=database, file_size_threshold=100)
 
     # WHEN
     merge_worker.do_merge()

@@ -21,18 +21,18 @@ from src.storage_engine import StorageEngine
 
 
 class MergeWorker:
-    DEFAULT_MAX_FILE_SIZE = 1000
+    DEFAULT_FILE_SIZE_THRESHOLD = 1000
 
     def __init__(
         self,
         storage_engine: StorageEngine,
-        max_file_size: int = DEFAULT_MAX_FILE_SIZE,
+        file_size_threshold: int = DEFAULT_FILE_SIZE_THRESHOLD,
     ):
-        # NB: This is not really a max file size - this is rather an indicative threshold defining when a new merged
-        # file should be created (once the threshold is crossed, we create a new merged file, but the current merged
-        # file is still bigger than that threshold)
-        # That is a very minor problem => I decided not to handle it (finding a better name should be enough)
-        self.max_file_size = max_file_size
+        # 'file_size_threshold' is an indicative threshold defining when a new merged file should be created (every time
+        # a merged file gets bigger than that threshold, we create a new one).
+        # This is not really a max size for the file because most merged files should be slightly bigger than this
+        # threshold (the actual max file size will be the sum of this threshold and of the max size for active files).
+        self.file_size_threshold = file_size_threshold
         self.storage_engine = storage_engine
 
     def _list_all_immutable_files(self) -> list[ReadableFile]:
@@ -44,13 +44,19 @@ class MergeWorker:
             != f"{self.storage_engine.directory}/{filename}"
         ]
 
-    def _flush_in_merge_file(self, hashmap, files) -> MergedFile:
-        # Step 2.a: Flush to disk
+    def _create_merge_file(self, hashmap, files: list[File]) -> MergedFile:
+        """
+        1. Flush to disk (i.e. write hashmap to new merged file)
+        2. Add the hint file next to it
+        3. Now that the file is ready, we can read from it => update KEY_DIR to reflect the new positions
+        4. Delete all files that were used in the merging process
+        """
+        # Step 1: Flush to disk
         merged_file = MergedFile(store_path=self.storage_engine.directory)
         merged_file_key_dir = merged_file.fill_from_in_memory_hashmap(hashmap=hashmap)
         merged_file.close()
 
-        # Step 2.c: Update KEY_DIR
+        # Step 2: Update KEY_DIR
         for key, entry in merged_file_key_dir:
             # Update in key_dir only those that were searched for in one of the merged files
             # NB: An alternative way to do this would be to compare the timestamps and update the entries that have not
@@ -67,7 +73,7 @@ class MergeWorker:
                 timestamp=entry.timestamp,
             )
 
-        # Step 2.d: Delete all files that have been merged together
+        # Step 4: Delete all files that have been merged together
         for file in files:
             file.discard()
 
@@ -75,23 +81,20 @@ class MergeWorker:
 
     def _merge_files(self, files: list[File]) -> list[MergedFile]:
         """The merging process is as follows:
-        1. Read all input files and write only the most recent key for each (i.e. keep in memory to know which has
-        already been written)
-        2. Whenever the merge file gets bigger than the max file size OR when we are done parsing all files:
-            2.a. Flush to disk (i.e. write hashmap to new merged file)
-            2.b. Add the hint file next to it
-            2.c. Now that the file is ready, we can read from it => update KEY_DIR to reflect the new positions
-            2.d. Delete all files that were used in the merging process
-            2.e. If there are remaining files to parse, repeat step 2
+        1. Read input files and record only the most recent value for each key (by storing it in an in-memory hashmap)
+        2. Whenever the merge file gets bigger than the max file size OR when we are done parsing all files, we flush
+        the hashmap to a new merged file.
         """
-        # Step 1: Store file info in hashmap
         hashmap = {}
         files_being_merged = []
         merged_files = []
         # Parsing files from oldest to most recent so that we always have the most up-to-date value in the hashmap
-        for file in sorted(files):
-            files_being_merged.append(file)
-            for stored_item in file:
+        files_to_merge = sorted(files)
+
+        while files_to_merge:
+            current_file = files_to_merge.pop(0)
+            files_being_merged.append(current_file)
+            for stored_item in current_file:
                 # TODO: this is coupled with fill_from_in_memory_hashmap
                 #  - should put both at the same place somehow to decouple !!
                 hashmap[stored_item.key] = {
@@ -102,20 +105,15 @@ class MergeWorker:
                 }
             merged_file_size = sum(len(value["content"]) for value in hashmap.values())
 
-            if merged_file_size >= self.max_file_size:
-                merged_file = self._flush_in_merge_file(
+            # Once the threshold is crossed OR we have processed all files, we flush the hashmap to the merged file
+            if merged_file_size >= self.file_size_threshold or len(files_to_merge) == 0:
+                merged_file = self._create_merge_file(
                     hashmap=hashmap, files=files_being_merged
                 )
                 merged_files.append(merged_file)
                 files_being_merged = []
                 hashmap = {}
-            else:
-                continue
 
-        last_merged_file = self._flush_in_merge_file(
-            hashmap=hashmap, files=files_being_merged
-        )
-        merged_files.append(last_merged_file)
         return merged_files
 
     # ~~~~~~~~~~~~~~~~~~~
