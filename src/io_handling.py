@@ -241,11 +241,18 @@ class HintFileItem:
         return metadata + bytes(self.key, encoding=ENCODING)
 
 
-class HintFile(WritableFile):
-    def __init__(self, merged_file: MergedFile):
-        self.merged_file = merged_file
-        self.path = os.path.splitext(self.merged_file.path)[0] + ".hint"
-        super().__init__(path=self.path)
+class HintFile(File):
+    def __init__(self, path: str, read_only: bool = False):
+        self.path = path
+        super().__init__(path=self.path, mode="r" if read_only else "w")
+
+    @property
+    def merged_file_path(self):
+        return os.path.splitext(self.path)[0] + ".data"
+
+    @classmethod
+    def from_merge_file(cls, merged_file: MergedFile):
+        return cls(path=os.path.splitext(merged_file.path)[0] + ".hint")
 
     def write(self, merged_file_key_dir: KeyDir) -> None:
         for key, entry in merged_file_key_dir:

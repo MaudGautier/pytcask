@@ -66,7 +66,7 @@ class MergeWorker:
         merged_file.close()
 
         # Step 2: Create hint file
-        hint_file = HintFile(merged_file=merged_file)
+        hint_file = HintFile.from_merge_file(merged_file=merged_file)
         hint_file.write(merged_file_key_dir=merged_file_key_dir)
 
         # Step 3: Update KEY_DIR
