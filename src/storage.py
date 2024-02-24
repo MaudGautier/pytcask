@@ -9,14 +9,14 @@ from src.key_dir import KeyDir
 class Storage:
     def __init__(self, directory: str, max_file_size: int):
         self.directory = directory
-        self.active_file = ActiveFile(path=f"{self.directory}/active.txt")
+        self.active_file = ActiveFile(path=f"{self.directory}/active.data")
         self.key_dir = KeyDir()
         self.max_file_size = max_file_size
 
     def _generate_new_active_file(self) -> None:
         # Using time in nanoseconds to avoid filename collisions
         timestamp_in_ns = int(time() * 1_000_000)
-        immutable_file_path = f"{self.directory}/{timestamp_in_ns}.txt"
+        immutable_file_path = f"{self.directory}/{timestamp_in_ns}.data"
         self.active_file.convert_to_immutable(new_path=immutable_file_path)
         self.key_dir.update_file_path(
             previous_path=self.active_file.path, new_path=immutable_file_path

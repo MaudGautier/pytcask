@@ -50,7 +50,7 @@ def test_merge_multiple_files_results_in_one(db_with_multiple_immutable_files):
     # THEN — check that we have 3 files: the active one and the merged one with data and hint
     filenames = sorted(os.listdir(database.directory))
     assert len(filenames) == 3
-    assert filenames[0] == "active.txt"
+    assert filenames[0] == "active.data"
     assert filenames[1].startswith("merged-") and filenames[1].endswith("data")
     assert filenames[2].startswith("merged-") and filenames[2].endswith("hint")
 
