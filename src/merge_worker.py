@@ -42,13 +42,14 @@ class MergeWorker:
         self.file_size_threshold = file_size_threshold
         self.storage_engine = storage_engine
 
-    def _list_all_immutable_files(self) -> list[ReadableFile]:
+    def _get_mergeable_files(self) -> list[ReadableFile]:
         all_filenames = os.listdir(self.storage_engine.directory)
         return [
             ImmutableFile(path=f"{self.storage_engine.directory}/{filename}")
             for filename in all_filenames
             if self.storage_engine.active_file.path
             != f"{self.storage_engine.directory}/{filename}"
+            and not filename.endswith(".hint")
         ]
 
     def _create_merge_file(
@@ -128,5 +129,5 @@ class MergeWorker:
 
     def do_merge(self):
         """Merges all files from a given store"""
-        all_immutable_files = self._list_all_immutable_files()
-        self._merge_files(files=all_immutable_files)
+        mergeable_files = self._get_mergeable_files()
+        self._merge_files(files=mergeable_files)

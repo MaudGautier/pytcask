@@ -91,10 +91,10 @@ def test_list_immutable_files_does_not_return_active_file(
     merge_worker = MergeWorker(storage_engine=database)
 
     # WHEN
-    immutable_files = merge_worker._list_all_immutable_files()
+    mergeable_files = merge_worker._get_mergeable_files()
 
     # THEN
-    assert database.active_file not in immutable_files
+    assert database.active_file not in mergeable_files
 
     database.clear()
 
@@ -126,5 +126,26 @@ def test_creates_new_merge_file_when_full(db_with_multiple_immutable_files):
     assert database.get(key="key1_bis") == b"another_value1_bis"
     assert database.get(key="k2") == b"v2"
     assert database.get(key="k3") == b"yet_another_val3"
+
+    database.clear()
+
+
+@pytest.mark.parametrize(
+    "db_with_multiple_immutable_files", [TEST_DIRECTORY], indirect=True
+)
+def test_hint_files_are_not_processed_by_merge_worker(db_with_multiple_immutable_files):
+    # GIVEN
+    database = db_with_multiple_immutable_files
+    assert len(os.listdir(database.directory)) == 5  # Check multiple files are present
+    merge_worker = MergeWorker(storage_engine=database, file_size_threshold=100)
+
+    # WHEN
+    merge_worker.do_merge()
+
+    # THEN
+    files_to_merge = merge_worker._get_mergeable_files()
+    assert len(files_to_merge) == 2
+    for file in files_to_merge:
+        assert not file.path.endswith(".hint")
 
     database.clear()

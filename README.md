@@ -28,9 +28,9 @@ Original plan:
   -> requires something pointing to the active file and the rest of immutable files 
 - [x] Create a hash index = keydir 
 - [x] Add compaction/merging process on the list of immutable files
-- [ ] Add hint file next to each compacted/merged file
+- [x] Add hint file next to each compacted/merged file
 - [x] Write a new key-value pair: Needs to be an atomic operation for 2 things: append to the file + add to the keydir
-- [ ] Open the active file only once. When it is closed (either because it is full or intentionally because of a crash), it is never reopened again: it is considered immutable.
+- [x] Open the active file only once. When it is closed (either because it is full or intentionally because of a crash), it is never reopened again: it is considered immutable.
 - [ ] Handle key deletion with a tombstone
 - [ ] When reading a value, the correctness of the value retrieved is checked against the CRC
 - [ ] For bootup: read hint files
