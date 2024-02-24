@@ -6,15 +6,8 @@ from src.io_handling import ActiveFile, File, StoredItem
 from src.key_dir import KeyDir
 
 
-class StorageEngine:
-    DEFAULT_DIRECTORY = "./datafiles/default"
-    DEFAULT_MAX_FILE_SIZE = 150
-
-    def __init__(
-        self,
-        directory: str = DEFAULT_DIRECTORY,
-        max_file_size: int = DEFAULT_MAX_FILE_SIZE,
-    ):
+class Storage:
+    def __init__(self, directory: str, max_file_size: int):
         self.directory = directory
         self.active_file = ActiveFile(path=f"{self.directory}/active.txt")
         self.key_dir = KeyDir()
@@ -86,3 +79,17 @@ class StorageEngine:
             os.remove(file_path)
         if delete_directory:
             os.rmdir(self.directory)
+
+
+class StorageEngine:
+    DEFAULT_DIRECTORY = "./datafiles/default"
+    DEFAULT_MAX_FILE_SIZE = 150
+
+    def __init__(
+        self,
+        directory: str = DEFAULT_DIRECTORY,
+        max_file_size: int = DEFAULT_MAX_FILE_SIZE,
+    ):
+        self.storage = Storage(directory=directory, max_file_size=max_file_size)
+        # TODO: add boot up process that builds the key_dir in mem by reading hint files
+        # TODO: add call to merge (=> contains the merge worker)

@@ -24,7 +24,7 @@ from src.io_handling import (
     FileRow,
     HintFile,
 )
-from src.storage_engine import StorageEngine
+from src.storage_engine import Storage
 
 
 class MergeWorker:
@@ -32,7 +32,7 @@ class MergeWorker:
 
     def __init__(
         self,
-        storage_engine: StorageEngine,
+        storage: Storage,
         file_size_threshold: int = DEFAULT_FILE_SIZE_THRESHOLD,
     ):
         # 'file_size_threshold' is an indicative threshold defining when a new merged file should be created (every time
@@ -40,15 +40,14 @@ class MergeWorker:
         # This is not really a max size for the file because most merged files should be slightly bigger than this
         # threshold (the actual max file size will be the sum of this threshold and of the max size for active files).
         self.file_size_threshold = file_size_threshold
-        self.storage_engine = storage_engine
+        self.storage = storage
 
     def _get_mergeable_files(self) -> list[ReadableFile]:
-        all_filenames = os.listdir(self.storage_engine.directory)
+        all_filenames = os.listdir(self.storage.directory)
         return [
-            ImmutableFile(path=f"{self.storage_engine.directory}/{filename}")
+            ImmutableFile(path=f"{self.storage.directory}/{filename}")
             for filename in all_filenames
-            if self.storage_engine.active_file.path
-            != f"{self.storage_engine.directory}/{filename}"
+            if self.storage.active_file.path != f"{self.storage.directory}/{filename}"
             and not filename.endswith(".hint")
         ]
 
@@ -62,7 +61,7 @@ class MergeWorker:
         4. Delete all files that were used in the merging process
         """
         # Step 1: Flush to disk
-        merged_file = MergedFile(store_path=self.storage_engine.directory)
+        merged_file = MergedFile(store_path=self.storage.directory)
         merged_file_key_dir = merged_file.flush_rows(file_rows=file_rows)
         merged_file.close()
 
@@ -75,12 +74,12 @@ class MergeWorker:
             # Update in key_dir only those that were searched for in one of the merged files
             # NB: An alternative way to do this would be to compare the timestamps and update the entries that have not
             # been updated more recently. However, timestamps in seconds does not give enough granularity here.
-            if self.storage_engine.key_dir.get(key).file_path not in [
+            if self.storage.key_dir.get(key).file_path not in [
                 file.path for file in files
             ]:
                 continue
 
-            self.storage_engine.key_dir.update(
+            self.storage.key_dir.update(
                 key=key,
                 file_path=entry.file_path,
                 value_position=entry.value_position,

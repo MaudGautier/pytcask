@@ -17,7 +17,7 @@ TEST_DIRECTORY = "./datafiles/test_merger"
 def test_compact_keys_in_one_file(db_with_only_active_file):
     # GIVEN
     database = db_with_only_active_file
-    merge_worker = MergeWorker(storage_engine=database)
+    merge_worker = MergeWorker(storage=database)
     file_to_merge = ReadableFile(database.active_file.path)
 
     # WHEN
@@ -42,7 +42,7 @@ def test_merge_multiple_files_results_in_one(db_with_multiple_immutable_files):
     # GIVEN
     database = db_with_multiple_immutable_files
     assert len(os.listdir(database.directory)) == 5  # Check multiple files are present
-    merge_worker = MergeWorker(storage_engine=database)
+    merge_worker = MergeWorker(storage=database)
 
     # WHEN
     merge_worker.do_merge()
@@ -64,7 +64,7 @@ def test_can_retrieve_correct_key_from_merged_file(db_with_multiple_immutable_fi
     # GIVEN
     database = db_with_multiple_immutable_files
     assert len(os.listdir(database.directory)) == 5  # Check multiple files are present
-    merge_worker = MergeWorker(storage_engine=database)
+    merge_worker = MergeWorker(storage=database)
 
     # WHEN
     merge_worker.do_merge()
@@ -88,7 +88,7 @@ def test_list_immutable_files_does_not_return_active_file(
 ):
     # GIVEN
     database = db_with_multiple_immutable_files
-    merge_worker = MergeWorker(storage_engine=database)
+    merge_worker = MergeWorker(storage=database)
 
     # WHEN
     mergeable_files = merge_worker._get_mergeable_files()
@@ -106,7 +106,7 @@ def test_creates_new_merge_file_when_full(db_with_multiple_immutable_files):
     # GIVEN
     database = db_with_multiple_immutable_files
     assert len(os.listdir(database.directory)) == 5  # Check multiple files are present
-    merge_worker = MergeWorker(storage_engine=database, file_size_threshold=100)
+    merge_worker = MergeWorker(storage=database, file_size_threshold=100)
 
     # WHEN
     merge_worker.do_merge()
@@ -137,7 +137,7 @@ def test_hint_files_are_not_processed_by_merge_worker(db_with_multiple_immutable
     # GIVEN
     database = db_with_multiple_immutable_files
     assert len(os.listdir(database.directory)) == 5  # Check multiple files are present
-    merge_worker = MergeWorker(storage_engine=database, file_size_threshold=100)
+    merge_worker = MergeWorker(storage=database, file_size_threshold=100)
 
     # WHEN
     merge_worker.do_merge()
@@ -160,7 +160,7 @@ def test_merge_process_uses_both_merged_and_new_immutable_files(
     # GIVEN
     database = db_with_multiple_immutable_files
     assert len(os.listdir(database.directory)) == 5  # Check multiple files are present
-    merge_worker = MergeWorker(storage_engine=database, file_size_threshold=100)
+    merge_worker = MergeWorker(storage=database, file_size_threshold=100)
 
     # WHEN
     merge_worker.do_merge()

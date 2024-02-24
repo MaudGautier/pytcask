@@ -1,6 +1,6 @@
 import pytest
 
-from src.storage_engine import StorageEngine
+from src.storage_engine import Storage
 
 db_with_only_active_file_key_value_pairs = [
     ("key1", b"value1"),
@@ -15,7 +15,7 @@ db_with_only_active_file_key_value_pairs = [
 
 @pytest.fixture
 def db_with_only_active_file(request):
-    database = StorageEngine(directory=request.param, max_file_size=1000)
+    database = Storage(directory=request.param, max_file_size=1000)
     for key, value in db_with_only_active_file_key_value_pairs:
         database.append(key=key, value=value)
     return database
@@ -38,7 +38,7 @@ db_with_multiple_immutable_files_key_value_pairs = [
 
 @pytest.fixture
 def db_with_multiple_immutable_files(request):
-    database = StorageEngine(directory=request.param, max_file_size=70)
+    database = Storage(directory=request.param, max_file_size=70)
     for key, value in db_with_multiple_immutable_files_key_value_pairs:
         database.append(key=key, value=value)
     return database

@@ -2,7 +2,7 @@ import os
 
 import pytest
 
-from src.storage_engine import StorageEngine
+from src.storage_engine import Storage
 from src.fixtures.database import (
     db_with_only_active_file,
     db_with_multiple_immutable_files,
@@ -61,7 +61,7 @@ def test_updates_and_retrievals_with_small_files(db_with_multiple_immutable_file
 def test_clear_database():
     # GIVEN
     directory = TEST_DIRECTORY
-    database = StorageEngine(directory=directory, max_file_size=15)
+    database = Storage(directory=directory, max_file_size=15)
     database.append(key="key1", value=b"value1")
     database.append(key="key2", value=b"another_value2")
     database.append(key="key1", value=b"yet_another_value1")
@@ -78,7 +78,7 @@ def test_clear_database():
 def test_clear_database_and_directory():
     # GIVEN
     directory = TEST_DIRECTORY
-    database = StorageEngine(directory=directory, max_file_size=15)
+    database = Storage(directory=directory, max_file_size=15)
     database.append(key="key1", value=b"yet_another_value1")
 
     # WHEN/THEN
