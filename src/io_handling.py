@@ -200,6 +200,47 @@ class MergedFile(WritableFile):
         return file_key_dir
 
 
+class HintFileItem:
+    def __init__(
+        self,
+        timestamp: int,
+        value_size: int,
+        key: str,
+        value_position: int,
+    ):
+        self.timestamp = timestamp
+        self.key = key
+        self.value_size = value_size
+        self.value_position = value_position
+        self.key_size = len(self.key)
+
+    def __repr__(self):
+        return f"{self.key}: {self.timestamp}-{self.key_size}-{self.value_size}-{self.value_position}"
+
+    def to_bytes(self):
+        metadata = struct.pack(
+            "iiii", self.timestamp, self.key_size, self.value_size, self.value_position
+        )
+        return metadata + bytes(self.key, encoding=ENCODING)
+
+
+class HintFile(WritableFile):
+    def __init__(self, merged_file: MergedFile):
+        self.merged_file = merged_file
+        self.path = os.path.splitext(self.merged_file.path)[0] + ".hint"
+        super().__init__(path=self.path)
+
+    def write(self, merged_file_key_dir: KeyDir) -> None:
+        for key, entry in merged_file_key_dir:
+            item = HintFileItem(
+                timestamp=entry.timestamp,
+                value_size=entry.value_size,
+                value_position=entry.value_position,
+                key=key,
+            )
+            self.file.write(item.to_bytes())
+
+
 class ActiveFile(WritableFile):
     def _append(self, stored_item: StoredItem) -> File.Offset:
         self.file.write(stored_item.to_bytes())

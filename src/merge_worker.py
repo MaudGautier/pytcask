@@ -22,6 +22,7 @@ from src.io_handling import (
     ReadableFile,
     ImmutableFile,
     FileRow,
+    HintFile,
 )
 from src.storage_engine import StorageEngine
 
@@ -64,7 +65,11 @@ class MergeWorker:
         merged_file_key_dir = merged_file.flush_rows(file_rows=file_rows)
         merged_file.close()
 
-        # Step 2: Update KEY_DIR
+        # Step 2: Create hint file
+        hint_file = HintFile(merged_file=merged_file)
+        hint_file.write(merged_file_key_dir=merged_file_key_dir)
+
+        # Step 3: Update KEY_DIR
         for key, entry in merged_file_key_dir:
             # Update in key_dir only those that were searched for in one of the merged files
             # NB: An alternative way to do this would be to compare the timestamps and update the entries that have not

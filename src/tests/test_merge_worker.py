@@ -47,11 +47,12 @@ def test_merge_multiple_files_results_in_one(db_with_multiple_immutable_files):
     # WHEN
     merge_worker.do_merge()
 
-    # THEN — check that we have two files: the active one and the merged one
+    # THEN — check that we have 3 files: the active one and the merged one with data and hint
     filenames = sorted(os.listdir(database.directory))
-    assert len(filenames) == 2
+    assert len(filenames) == 3
     assert filenames[0] == "active.txt"
-    assert filenames[1].startswith("merged-")
+    assert filenames[1].startswith("merged-") and filenames[1].endswith("data")
+    assert filenames[2].startswith("merged-") and filenames[2].endswith("hint")
 
     database.clear()
 
@@ -104,7 +105,7 @@ def test_list_immutable_files_does_not_return_active_file(
 def test_creates_new_merge_file_when_full(db_with_multiple_immutable_files):
     # GIVEN
     database = db_with_multiple_immutable_files
-    # assert len(os.listdir(database.directory)) == 5  # Check multiple files are present
+    assert len(os.listdir(database.directory)) == 5  # Check multiple files are present
     merge_worker = MergeWorker(storage_engine=database, file_size_threshold=100)
 
     # WHEN
@@ -112,7 +113,9 @@ def test_creates_new_merge_file_when_full(db_with_multiple_immutable_files):
 
     # THEN - ensure that we have multiple merged files
     merged_filenames = [
-        name for name in os.listdir(database.directory) if name.startswith("merged-")
+        name
+        for name in os.listdir(database.directory)
+        if name.startswith("merged-") and name.endswith("data")
     ]
     assert len(merged_filenames) == 2
 
