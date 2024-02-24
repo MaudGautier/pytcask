@@ -1,6 +1,7 @@
 import os
 import struct
 from datetime import datetime
+from enum import Enum
 from typing import BinaryIO, Iterator
 
 from src.item import Item
@@ -8,6 +9,12 @@ from src.key_dir import KeyDir
 
 ENCODING = "utf-8"
 NB_BYTES_INTEGER = 4
+
+
+class FileType(str, Enum):
+    HINT = "hint"
+    MERGED_DATA = "merged_data"
+    UNMERGED_DATA = "unmerged_data"
 
 
 class StoredItem:
@@ -95,6 +102,16 @@ class File:
     def __init__(self, path: str, mode: str):
         self.path = path
         self.file: BinaryIO = self.get_file(mode=mode)
+
+    @property
+    def type(self) -> str:
+        filename = os.path.basename(self.path)
+        if filename.endswith(".hint"):
+            return FileType.HINT
+        if filename.endswith(".data") and filename.startswith("merged-"):
+            return FileType.MERGED_DATA
+        if filename.endswith(".data") and not filename.startswith("merged-"):
+            return FileType.UNMERGED_DATA
 
     @staticmethod
     def read(path: str, start: int, end: int) -> bytes:
