@@ -2,7 +2,7 @@ import os
 
 import pytest
 
-from src.storage_engine import Storage
+from src.storage import Storage
 from src.fixtures.database import (
     db_with_only_active_file,
     db_with_multiple_immutable_files,

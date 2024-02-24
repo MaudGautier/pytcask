@@ -24,7 +24,7 @@ from src.io_handling import (
     FileRow,
     HintFile,
 )
-from src.storage_engine import Storage
+from src.storage import Storage
 
 
 class MergeWorker:

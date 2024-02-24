@@ -1,6 +1,6 @@
 import pytest
 
-from src.storage_engine import Storage
+from src.storage import Storage
 
 db_with_only_active_file_key_value_pairs = [
     ("key1", b"value1"),
