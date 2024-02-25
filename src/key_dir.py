@@ -1,7 +1,12 @@
 from collections import namedtuple
-from typing import Iterator
+from typing import Iterator, TYPE_CHECKING
 
+from src.io_handling.generic_file import File
 from src.item import Item
+
+if TYPE_CHECKING:
+    from src.io_handling.data_file import DataFile
+    from src.io_handling.hint_file import HintFile
 
 
 class KeyDir:
@@ -22,7 +27,7 @@ class KeyDir:
         self,
         key: Item.Key,
         file_path: str,
-        value_position: int,  # TO avoid circular import # TODO: improve ??? File.Offset,
+        value_position: File.Offset,
         value_size: int,
         timestamp: int,
     ) -> None:
@@ -47,11 +52,10 @@ class KeyDir:
     def get(self, key: Item.Key) -> KeyDirEntry or None:
         return self.entries[key] if key in self.entries else None
 
-    # TODO: handle type without circular error
-    def rebuild(self, hint_files, data_files):
+    def rebuild(self, hint_files: list["HintFile"], data_files: list["DataFile"]):
         self._clear()
-        for hint_file in hint_files:  # This is a HintFileItem
-            for item in hint_file:
+        for hint_file in hint_files:
+            for item in hint_file:  # This is a HintFileItem
                 self.update(
                     key=item.key,
                     file_path=hint_file.merged_file_path,
@@ -59,11 +63,11 @@ class KeyDir:
                     value_size=item.value_size,
                     timestamp=item.timestamp,
                 )
-        for unmerged_data_file in data_files:
-            for item in unmerged_data_file:  # This is a StoredItem
+        for data_file in data_files:
+            for item in data_file:  # This is a DataFileItem
                 self.update(
                     key=item.key,
-                    file_path=unmerged_data_file.path,
+                    file_path=data_file.path,
                     value_position=item.value_position,
                     value_size=item.value_size,
                     timestamp=item.timestamp,
