@@ -47,7 +47,8 @@ class MergeWorker:
         return [
             ImmutableDataFile(path=f"{self.storage.directory}/{filename}")
             for filename in all_filenames
-            if self.storage.active_file.path != f"{self.storage.directory}/{filename}"
+            if self.storage.active_data_file.path
+            != f"{self.storage.directory}/{filename}"
             and not filename.endswith(".hint")
         ]
 

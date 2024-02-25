@@ -27,7 +27,7 @@ def test_can_decode_encoded_data():
 def test_can_iterate_on_file_and_decode_item(db_with_only_active_file):
     # GIVEN
     database = db_with_only_active_file
-    file = DataFile(database.active_file.path)
+    file = DataFile(database.active_data_file.path)
 
     # WHEN/THEN (test __iter__ dunder method)
     i = 0

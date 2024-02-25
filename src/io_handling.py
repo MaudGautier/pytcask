@@ -311,7 +311,7 @@ class HintFile(File):
                 yield item
 
 
-class ActiveFile(WritableDataFile):
+class ActiveDataFile(WritableDataFile):
     def _append(self, data_file_item: DataFileItem) -> File.Offset:
         self.file.write(data_file_item.to_bytes())
         offset = self.file.tell()

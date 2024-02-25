@@ -2,7 +2,7 @@ import os
 from time import time
 
 from src.io_handling import (
-    ActiveFile,
+    ActiveDataFile,
     DataFileItem,
     File,
     HintFile,
@@ -16,7 +16,7 @@ from src.key_dir import KeyDir
 class Storage:
     def __init__(self, directory: str, max_file_size: int):
         self.directory = directory
-        self.active_file = ActiveFile(path=f"{self.directory}/active.data")
+        self.active_data_file = ActiveDataFile(path=f"{self.directory}/active.data")
         self.max_file_size = max_file_size
         self.key_dir = KeyDir()
         self.rebuild_index()
@@ -25,21 +25,23 @@ class Storage:
         # Using time in nanoseconds to avoid filename collisions
         timestamp_in_ns = int(time() * 1_000_000)
         immutable_file_path = f"{self.directory}/{timestamp_in_ns}.data"
-        self.active_file.convert_to_immutable(new_path=immutable_file_path)
+        self.active_data_file.convert_to_immutable(new_path=immutable_file_path)
         self.key_dir.update_file_path(
-            previous_path=self.active_file.path, new_path=immutable_file_path
+            previous_path=self.active_data_file.path, new_path=immutable_file_path
         )
-        self.active_file = ActiveFile(self.active_file.path)
+        self.active_data_file = ActiveDataFile(self.active_data_file.path)
 
     def _append_to_active_file(self, data_file_item: DataFileItem) -> File.Offset:
         new_line_size = data_file_item.size
-        expected_file_size = self.active_file.size + new_line_size
+        expected_file_size = self.active_data_file.size + new_line_size
         is_active_file_too_big = expected_file_size > self.max_file_size
 
         if is_active_file_too_big:
             self._generate_new_active_file()
 
-        value_position_offset = self.active_file.append(data_file_item=data_file_item)
+        value_position_offset = self.active_data_file.append(
+            data_file_item=data_file_item
+        )
         return value_position_offset
 
     def _get_index_rebuild_files(self) -> tuple[list[DataFile], list[HintFile]]:
@@ -70,7 +72,7 @@ class Storage:
         )
         self.key_dir.update(
             key=key,
-            file_path=self.active_file.path,
+            file_path=self.active_data_file.path,
             value_position=active_file_value_position_offset,
             value_size=data_file_item.value_size,
             timestamp=data_file_item.timestamp,

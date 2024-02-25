@@ -18,7 +18,7 @@ def test_compact_keys_in_one_file(db_with_only_active_file):
     # GIVEN
     database = db_with_only_active_file
     merge_worker = MergeWorker(storage=database)
-    file_to_merge = DataFile(database.active_file.path)
+    file_to_merge = DataFile(database.active_data_file.path)
 
     # WHEN
     merged_files = merge_worker._merge_files(files=[file_to_merge])
@@ -94,7 +94,7 @@ def test_list_immutable_files_does_not_return_active_file(
     mergeable_files = merge_worker._get_mergeable_files()
 
     # THEN
-    assert database.active_file not in mergeable_files
+    assert database.active_data_file not in mergeable_files
 
     database.clear()
 
