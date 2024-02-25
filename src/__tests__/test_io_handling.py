@@ -4,7 +4,7 @@ from src.__fixtures__.database import (
     db_with_only_active_file_key_value_pairs,
     db_with_only_active_file,
 )
-from src.io_handling import DataFileItem, DataFile
+from src.io_handling.data_file import DataFileItem, DataFile
 
 TEST_DIRECTORY = "./datafiles/test_io_handling"
 

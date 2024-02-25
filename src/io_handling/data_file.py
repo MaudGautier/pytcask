@@ -1,20 +1,11 @@
 import os
 import struct
 from datetime import datetime
-from enum import Enum
-from typing import BinaryIO, Iterator
+from typing import Iterator
 
+from src.io_handling.generic_file import ENCODING, NB_BYTES_INTEGER, File
 from src.item import Item
 from src.key_dir import KeyDir
-
-ENCODING = "utf-8"
-NB_BYTES_INTEGER = 4
-
-
-class FileType(str, Enum):
-    HINT = "hint"
-    MERGED_DATA = "merged_data"
-    UNMERGED_DATA = "unmerged_data"
 
 
 class DataFileItem:
@@ -99,54 +90,6 @@ class DataFileItem:
         return cls(value=item.value, key=item.key)
 
 
-class File:
-    Offset = int
-    KEY_VALUE_PAIR_SEPARATOR = "\n"
-
-    def __init__(self, path: str, mode: str):
-        self.path = path
-        self.file: BinaryIO = self._get_file(mode=mode)
-
-    def __lt__(self, other):
-        """Files are sorted based on their creation date"""
-        return os.path.getctime(self.path) < os.path.getctime(other.path)
-
-    @staticmethod
-    def _ensure_directory_exists(file_path) -> None:
-        directory = os.path.dirname(file_path)
-        if not os.path.exists(directory):
-            os.makedirs(directory)
-
-    def _get_file(self, mode: str) -> BinaryIO:
-        """Opens or creates a file in binary mode (depending on the mode passed)"""
-        self._ensure_directory_exists(self.path)
-        return open(self.path, mode=f"{mode}b")
-
-    @property
-    def type(self) -> str:
-        filename = os.path.basename(self.path)
-        if filename.endswith(".hint"):
-            return FileType.HINT
-        if filename.endswith(".data") and filename.startswith("merged-"):
-            return FileType.MERGED_DATA
-        if filename.endswith(".data") and not filename.startswith("merged-"):
-            return FileType.UNMERGED_DATA
-
-    @staticmethod
-    def read(path: str, start: int, end: int) -> bytes:
-        with open(path, "rb") as file:
-            file.seek(start)
-            value = file.read(end - start)
-            return value
-
-    def discard(self):
-        """Discards the file"""
-        os.remove(self.path)
-
-    def close(self):
-        self.file.close()
-
-
 class DataFile(File):
     def __init__(self, path: str, read_only: bool = True):
         super().__init__(path=path, mode="r" if read_only else "w")
@@ -200,95 +143,6 @@ class MergedDataFile(WritableDataFile):
             offset += nb_bytes_written
 
         return file_key_dir
-
-
-# TODO: refactor HintFileItem and StoredItem (= DataFileItem) together ??? (many things similar)
-class HintFileItem:
-    def __init__(
-        self,
-        timestamp: int,
-        value_size: int,
-        key: str,
-        value_position: int,
-    ):
-        self.timestamp = timestamp
-        self.key = key
-        self.value_size = value_size
-        self.value_position = value_position
-        self.key_size = len(self.key)
-
-    def __repr__(self):
-        return f"{self.key}: {self.timestamp}-{self.key_size}-{self.value_size}-{self.value_position}"
-
-    @property
-    def encoded_metadata(self) -> bytes:
-        return struct.pack(
-            "iiii", self.timestamp, self.key_size, self.value_size, self.value_position
-        )
-
-    @property
-    def encoded_key(self) -> bytes:
-        return bytes(self.key, encoding=ENCODING)
-
-    @property
-    def size(self):
-        return len(self.encoded_metadata) + len(self.encoded_key)
-
-    def to_bytes(self):
-        metadata = self.encoded_metadata
-        return metadata + bytes(self.key, encoding=ENCODING)
-
-    @classmethod
-    def from_bytes(cls, data: bytes) -> "HintFileItem":
-        metadata_offset = 4 * NB_BYTES_INTEGER
-        timestamp, key_size, value_size, value_position = struct.unpack(
-            "iiii", data[:metadata_offset]
-        )
-        key = str(data[metadata_offset : metadata_offset + key_size], encoding=ENCODING)
-
-        return cls(
-            key=key,
-            value_size=value_size,
-            value_position=value_position,
-            timestamp=timestamp,
-        )
-
-
-class HintFile(File):
-    def __init__(self, path: str, read_only: bool = False):
-        self.path = path
-        super().__init__(path=self.path, mode="r" if read_only else "w")
-
-    @property
-    def merged_file_path(self):
-        return os.path.splitext(self.path)[0] + ".data"
-
-    @classmethod
-    def from_merge_file(cls, merged_file: MergedDataFile):
-        return cls(path=os.path.splitext(merged_file.path)[0] + ".hint")
-
-    def write(self, merged_file_key_dir: KeyDir) -> None:
-        for key, entry in merged_file_key_dir:
-            item = HintFileItem(
-                timestamp=entry.timestamp,
-                value_size=entry.value_size,
-                value_position=entry.value_position,
-                key=key,
-            )
-            self.file.write(item.to_bytes())
-
-    # TODO: This is a close copy-paste of the File.__iter__ dunder method.
-    #  => Refactor with a generic ?? (StoredItem(DataFileItem) vs HintItem(HintFileItem))
-    def __iter__(self) -> Iterator[HintFileItem]:
-        file_size = os.path.getsize(self.path)
-        with open(self.path, "rb") as file:
-            data = file.read()
-            offset = 0
-            while offset < file_size:
-                item = HintFileItem.from_bytes(data[offset:])
-                chunk_size = item.size
-                offset += chunk_size
-                yield item
 
 
 class ActiveDataFile(WritableDataFile):

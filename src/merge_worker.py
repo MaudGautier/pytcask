@@ -16,14 +16,14 @@ Unclear thoughts:
 
 import os
 
-from src.io_handling import (
-    File,
+from src.io_handling.data_file import (
     MergedDataFile,
     DataFile,
     ImmutableDataFile,
-    HintFile,
     DataFileItem,
 )
+from src.io_handling.generic_file import File
+from src.io_handling.hint_file import HintFile
 from src.storage import Storage
 
 

@@ -1,14 +1,13 @@
 import os
 from time import time
 
-from src.io_handling import (
+from src.io_handling.data_file import (
     ActiveDataFile,
     DataFileItem,
-    File,
-    HintFile,
     DataFile,
-    FileType,
 )
+from src.io_handling.generic_file import FileType, File
+from src.io_handling.hint_file import HintFile
 from src.item import Item
 from src.key_dir import KeyDir
 
