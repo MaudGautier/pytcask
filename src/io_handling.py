@@ -71,6 +71,10 @@ class DataFileItem:
     def size(self) -> int:
         return len(self.encoded_metadata) + len(self.encoded_key) + len(self.value)
 
+    @property
+    def encoded_item(self) -> bytes:
+        return self.to_bytes()
+
     def to_bytes(self) -> bytes:
         encoded_metadata = self.encoded_metadata
         encoded_key = self.encoded_key
@@ -143,20 +147,6 @@ class File:
         self.file.close()
 
 
-class DataFileRow:
-    def __init__(
-        self,
-        content: bytes,
-        value_size: int,
-        value_position_in_row: int,
-        timestamp: int,
-    ):
-        self.content = content
-        self.value_size = value_size
-        self.value_position_in_row = value_position_in_row
-        self.timestamp = timestamp
-
-
 class DataFile(File):
     def __init__(self, path: str, read_only: bool = True):
         super().__init__(path=path, mode="r" if read_only else "w")
@@ -177,16 +167,6 @@ class DataFile(File):
                 offset += chunk_size
                 yield data_file_item
 
-    def read_rows(self, file_rows: dict[str, DataFileRow]):
-        for data_file_item in self:
-            file_rows[data_file_item.key] = DataFileRow(
-                content=data_file_item.to_bytes(),
-                value_size=data_file_item.value_size,
-                value_position_in_row=data_file_item.value_position,
-                timestamp=data_file_item.timestamp,
-            )
-        return file_rows
-
 
 class ImmutableDataFile(DataFile):
     def __init__(self, path: str):
@@ -205,17 +185,17 @@ class MergedDataFile(WritableDataFile):
         file_path = f"{store_path}/merged-{timestamp_in_ns}.data"
         super().__init__(path=file_path)
 
-    def flush_rows(self, file_rows: dict[str, DataFileRow]) -> KeyDir:
+    def write(self, data_file_items: list[DataFileItem]) -> KeyDir:
         file_key_dir = KeyDir()
         offset = 0
-        for key, entry in file_rows.items():
-            nb_bytes_written = self.file.write(entry.content)
+        for data_file_item in data_file_items:
+            nb_bytes_written = self.file.write(data_file_item.encoded_item)
             file_key_dir.update(
                 file_path=self.path,
-                value_size=entry.value_size,
-                value_position=offset + entry.value_position_in_row,
-                key=key,
-                timestamp=entry.timestamp,
+                value_size=data_file_item.value_size,
+                value_position=offset + data_file_item.value_position,
+                key=data_file_item.key,
+                timestamp=data_file_item.timestamp,
             )
             offset += nb_bytes_written
 

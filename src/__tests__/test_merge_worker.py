@@ -21,7 +21,7 @@ def test_compact_keys_in_one_file(db_with_only_active_file):
     file_to_merge = DataFile(database.active_data_file.path)
 
     # WHEN
-    merged_files = merge_worker._merge_files(files=[file_to_merge])
+    merged_files = merge_worker._merge_files(data_files=[file_to_merge])
 
     # THEN
     assert os.path.exists(file_to_merge.path) is False  # Merged file has been deleted

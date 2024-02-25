@@ -33,7 +33,8 @@ Original plan:
 - [x] Open the active file only once. When it is closed (either because it is full or intentionally because of a crash), it is never reopened again: it is considered immutable.
 - [ ] Handle key deletion with a tombstone
 - [ ] When reading a value, the correctness of the value retrieved is checked against the CRC
-- [ ] For bootup: read hint files
+- [x] For bootup: read hint files
+- [ ] Make operation atomic to update keydir / create hint file
 
 Unclear thoughts:
 - Command line arguments to go through this ?

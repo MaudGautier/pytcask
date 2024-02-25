@@ -21,8 +21,8 @@ from src.io_handling import (
     MergedDataFile,
     DataFile,
     ImmutableDataFile,
-    DataFileRow,
     HintFile,
+    DataFileItem,
 )
 from src.storage import Storage
 
@@ -53,17 +53,17 @@ class MergeWorker:
         ]
 
     def _create_merge_file(
-        self, file_rows: dict[str, DataFileRow], files: list[File]
+        self, data_file_items: list[DataFileItem], files: list[File]
     ) -> MergedDataFile:
         """The creation of a new merged file involves the following steps:
-        1. Flush rows to disk (i.e. write file_rows hashmap to new merged file)
+        1. Flush rows to disk (i.e. write data_file_items to new merged file)
         2. Add the hint file next to it
         3. Now that the merged file is created, we can read from it => update KEY_DIR to reflect the new positions
         4. Delete all files that were used in the merging process
         """
         # Step 1: Flush to disk
         merged_file = MergedDataFile(store_path=self.storage.directory)
-        merged_file_key_dir = merged_file.flush_rows(file_rows=file_rows)
+        merged_file_key_dir = merged_file.write(data_file_items=data_file_items)
         merged_file.close()
 
         # Step 2: Create hint file
@@ -94,7 +94,7 @@ class MergeWorker:
 
         return merged_file
 
-    def _merge_files(self, files: list[DataFile]) -> list[MergedDataFile]:
+    def _merge_files(self, data_files: list[DataFile]) -> list[MergedDataFile]:
         """The merging process is as follows:
         1. Read input files and record only the most recent value for each key (by storing it in an in-memory hashmap)
         2. Whenever the merge file gets bigger than the max file size OR when we are done parsing all files, we flush
@@ -103,19 +103,27 @@ class MergeWorker:
         file_rows = {}
         files_being_merged = []
         merged_files = []
-        # Parsing files from oldest to most recent so that we always have the most up-to-date value in the hashmap
-        files_to_merge = sorted(files)
 
-        while files_to_merge:
-            current_file = files_to_merge.pop(0)
-            files_being_merged.append(current_file)
-            current_file.read_rows(file_rows=file_rows)
-            merged_file_size = sum(len(value.content) for value in file_rows.values())
+        # Parsing files from oldest to most recent so that we always have the most up-to-date value in the hashmap
+        data_files.sort()
+        while data_files:
+            data_file = data_files.pop(0)
+            files_being_merged.append(data_file)
+            for data_file_item in data_file:
+                file_rows[data_file_item.key] = data_file_item
+            # Warning: The order of data file items differs from the original one.
+            # Not a problem because only one value per key in merged files.
+            # An alternative would be to record the rows in a list and the keys and index in a hashmap. Everytime
+            # we replace a key, we pop it out of the list and append the new one to the list. This would keep the order.
+            data_file_items = list(file_rows.values())
+            merged_file_size = sum(
+                len(data_file_item.encoded_item) for data_file_item in data_file_items
+            )
 
             # Once the threshold is crossed OR we have processed all files, we flush the rows to the merged file
-            if merged_file_size >= self.file_size_threshold or len(files_to_merge) == 0:
+            if merged_file_size >= self.file_size_threshold or len(data_files) == 0:
                 merged_file = self._create_merge_file(
-                    file_rows=file_rows, files=files_being_merged
+                    data_file_items=data_file_items, files=files_being_merged
                 )
                 merged_files.append(merged_file)
                 files_being_merged = []
@@ -130,4 +138,4 @@ class MergeWorker:
     def do_merge(self):
         """Merges all files from a given store"""
         mergeable_files = self._get_mergeable_files()
-        self._merge_files(files=mergeable_files)
+        self._merge_files(data_files=mergeable_files)
