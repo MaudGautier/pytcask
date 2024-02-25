@@ -7,7 +7,6 @@ from src.io_handling.generic_file import File, ENCODING, NB_BYTES_INTEGER
 from src.key_dir import KeyDir
 
 
-# TODO: refactor HintFileItem and StoredItem (= DataFileItem) together ??? (many things similar)
 class HintFileItem:
     def __init__(
         self,
@@ -82,15 +81,5 @@ class HintFile(File):
             )
             self.file.write(item.to_bytes())
 
-    # TODO: This is a close copy-paste of the File.__iter__ dunder method.
-    #  => Refactor with a generic ?? (StoredItem(DataFileItem) vs HintItem(HintFileItem))
-    def __iter__(self) -> Iterator[HintFileItem]:
-        file_size = os.path.getsize(self.path)
-        with open(self.path, "rb") as file:
-            data = file.read()
-            offset = 0
-            while offset < file_size:
-                item = HintFileItem.from_bytes(data[offset:])
-                chunk_size = item.size
-                offset += chunk_size
-                yield item
+    def __iter__(self, item_class=HintFileItem) -> Iterator[HintFileItem]:
+        return super().__iter__(item_class=item_class)

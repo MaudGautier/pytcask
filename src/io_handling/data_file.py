@@ -94,21 +94,8 @@ class DataFile(File):
     def __init__(self, path: str, read_only: bool = True):
         super().__init__(path=path, mode="r" if read_only else "w")
 
-    def __iter__(self) -> Iterator[DataFileItem]:
-        file_size = os.path.getsize(self.path)
-        with open(self.path, "rb") as file:
-            # This means that the whole file is stored in memory at once. This is required because the size of the next
-            # chunk depends on the size of the key and values (which we can't know before consuming the next bytes).
-            # Another approach would have been to read a given chunk size that is larger than necessary (but smaller
-            # than the whole file). But that would make the code much more complex and it is not necessary here.
-            # So I opted for simplicity.
-            data = file.read()
-            offset = 0
-            while offset < file_size:
-                data_file_item = DataFileItem.from_bytes(data[offset:])
-                chunk_size = data_file_item.size
-                offset += chunk_size
-                yield data_file_item
+    def __iter__(self, item_class=DataFileItem) -> Iterator[DataFileItem]:
+        return super().__iter__(item_class=item_class)
 
 
 class ImmutableDataFile(DataFile):
