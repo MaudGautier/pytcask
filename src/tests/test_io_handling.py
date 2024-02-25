@@ -4,7 +4,7 @@ from src.fixtures.database import (
     db_with_only_active_file_key_value_pairs,
     db_with_only_active_file,
 )
-from src.io_handling import StoredItem, ReadableFile
+from src.io_handling import StoredItem, DataFile
 
 TEST_DIRECTORY = "./datafiles/test_io_handling"
 
@@ -27,7 +27,7 @@ def test_can_decode_encoded_data():
 def test_can_iterate_on_file_and_decode_item(db_with_only_active_file):
     # GIVEN
     database = db_with_only_active_file
-    file = ReadableFile(database.active_file.path)
+    file = DataFile(database.active_file.path)
 
     # WHEN/THEN (test __iter__ dunder method)
     i = 0

@@ -6,7 +6,7 @@ from src.io_handling import (
     StoredItem,
     File,
     HintFile,
-    ReadableFile,
+    DataFile,
     FileType,
 )
 from src.item import Item
@@ -42,12 +42,12 @@ class Storage:
         value_position_offset = self.active_file.append(stored_item=stored_item)
         return value_position_offset
 
-    def _get_index_rebuild_files(self) -> tuple[list[ReadableFile], list[HintFile]]:
+    def _get_index_rebuild_files(self) -> tuple[list[DataFile], list[HintFile]]:
         hint_files = []
         unmerged_data_files = []
         for filename in os.listdir(self.directory):
             file_path = f"{self.directory}/{filename}"
-            file = ReadableFile(path=file_path)
+            file = DataFile(path=file_path)
             if file.type == FileType.HINT:
                 hint_files.append(HintFile(path=file_path, read_only=True))
             if file.type == FileType.UNMERGED_DATA:

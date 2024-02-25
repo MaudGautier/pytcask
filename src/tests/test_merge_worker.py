@@ -7,7 +7,7 @@ from src.fixtures.database import (
     db_with_only_active_file_key_value_pairs,
     db_with_multiple_immutable_files,
 )
-from src.io_handling import ReadableFile
+from src.io_handling import DataFile
 from src.merge_worker import MergeWorker
 
 TEST_DIRECTORY = "./datafiles/test_merger"
@@ -18,7 +18,7 @@ def test_compact_keys_in_one_file(db_with_only_active_file):
     # GIVEN
     database = db_with_only_active_file
     merge_worker = MergeWorker(storage=database)
-    file_to_merge = ReadableFile(database.active_file.path)
+    file_to_merge = DataFile(database.active_file.path)
 
     # WHEN
     merged_files = merge_worker._merge_files(files=[file_to_merge])

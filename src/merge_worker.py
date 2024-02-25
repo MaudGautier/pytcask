@@ -18,10 +18,10 @@ import os
 
 from src.io_handling import (
     File,
-    MergedFile,
-    ReadableFile,
-    ImmutableFile,
-    FileRow,
+    MergedDataFile,
+    DataFile,
+    ImmutableDataFile,
+    DataFileRow,
     HintFile,
 )
 from src.storage import Storage
@@ -42,18 +42,18 @@ class MergeWorker:
         self.file_size_threshold = file_size_threshold
         self.storage = storage
 
-    def _get_mergeable_files(self) -> list[ReadableFile]:
+    def _get_mergeable_files(self) -> list[DataFile]:
         all_filenames = os.listdir(self.storage.directory)
         return [
-            ImmutableFile(path=f"{self.storage.directory}/{filename}")
+            ImmutableDataFile(path=f"{self.storage.directory}/{filename}")
             for filename in all_filenames
             if self.storage.active_file.path != f"{self.storage.directory}/{filename}"
             and not filename.endswith(".hint")
         ]
 
     def _create_merge_file(
-        self, file_rows: dict[str, FileRow], files: list[File]
-    ) -> MergedFile:
+        self, file_rows: dict[str, DataFileRow], files: list[File]
+    ) -> MergedDataFile:
         """The creation of a new merged file involves the following steps:
         1. Flush rows to disk (i.e. write file_rows hashmap to new merged file)
         2. Add the hint file next to it
@@ -61,7 +61,7 @@ class MergeWorker:
         4. Delete all files that were used in the merging process
         """
         # Step 1: Flush to disk
-        merged_file = MergedFile(store_path=self.storage.directory)
+        merged_file = MergedDataFile(store_path=self.storage.directory)
         merged_file_key_dir = merged_file.flush_rows(file_rows=file_rows)
         merged_file.close()
 
@@ -93,7 +93,7 @@ class MergeWorker:
 
         return merged_file
 
-    def _merge_files(self, files: list[ReadableFile]) -> list[MergedFile]:
+    def _merge_files(self, files: list[DataFile]) -> list[MergedDataFile]:
         """The merging process is as follows:
         1. Read input files and record only the most recent value for each key (by storing it in an in-memory hashmap)
         2. Whenever the merge file gets bigger than the max file size OR when we are done parsing all files, we flush

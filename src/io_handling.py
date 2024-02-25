@@ -101,7 +101,7 @@ class File:
 
     def __init__(self, path: str, mode: str):
         self.path = path
-        self.file: BinaryIO = self.get_file(mode=mode)
+        self.file: BinaryIO = self._get_file(mode=mode)
 
     @property
     def type(self) -> str:
@@ -121,18 +121,49 @@ class File:
             return value
 
     @staticmethod
-    def ensure_directory_exists(file_path) -> None:
+    def _ensure_directory_exists(file_path) -> None:
         directory = os.path.dirname(file_path)
         if not os.path.exists(directory):
             os.makedirs(directory)
 
-    def get_file(self, mode: str) -> BinaryIO:
+    def _get_file(self, mode: str) -> BinaryIO:
         """Opens or creates a file in binary mode (depending on the mode passed)"""
-        self.ensure_directory_exists(self.path)
+        self._ensure_directory_exists(self.path)
         return open(self.path, mode=f"{mode}b")
+
+    def __lt__(self, other):
+        """Files are sorted based on their creation date"""
+        return os.path.getctime(self.path) < os.path.getctime(other.path)
+
+    def discard(self):
+        """Discards the file"""
+        os.remove(self.path)
+
+    def close(self):
+        self.file.close()
+
+
+class DataFileRow:
+    def __init__(
+        self,
+        content: bytes,
+        value_size: int,
+        value_position_in_row: int,
+        timestamp: int,
+    ):
+        self.content = content
+        self.value_size = value_size
+        self.value_position_in_row = value_position_in_row
+        self.timestamp = timestamp
+
+
+class DataFile(File):
+    def __init__(self, path: str, read_only: bool = True):
+        super().__init__(path=path, mode="r" if read_only else "w")
 
     def __iter__(self) -> Iterator[StoredItem]:
         file_size = os.path.getsize(self.path)
+        # TODO: BESOIN DE CE OPEN ICI ????
         with open(self.path, "rb") as file:
             # This means that the whole file is stored in memory at once. This is required because the size of the next
             # chunk depends on the size of the key and values (which we can't know before consuming the next bytes).
@@ -147,39 +178,9 @@ class File:
                 offset += chunk_size
                 yield stored_item
 
-    def __lt__(self, other):
-        """Files are sorted based on their creation date"""
-        return os.path.getctime(self.path) < os.path.getctime(other.path)
-
-    def discard(self):
-        """Discards the file"""
-        os.remove(self.path)
-
-    def close(self):
-        self.file.close()
-
-
-class FileRow:
-    def __init__(
-        self,
-        content: bytes,
-        value_size: int,
-        value_position_in_row: int,
-        timestamp: int,
-    ):
-        self.content = content
-        self.value_size = value_size
-        self.value_position_in_row = value_position_in_row
-        self.timestamp = timestamp
-
-
-class ReadableFile(File):
-    def __init__(self, path: str):
-        super().__init__(path=path, mode="r")
-
-    def read_rows(self, file_rows: dict[str, FileRow]):
+    def read_rows(self, file_rows: dict[str, DataFileRow]):
         for stored_item in self:
-            file_rows[stored_item.key] = FileRow(
+            file_rows[stored_item.key] = DataFileRow(
                 content=stored_item.to_bytes(),
                 value_size=stored_item.value_size,
                 value_position_in_row=stored_item.value_position,
@@ -188,19 +189,24 @@ class ReadableFile(File):
         return file_rows
 
 
-class WritableFile(File):
+class ImmutableDataFile(DataFile):
     def __init__(self, path: str):
-        super().__init__(path=path, mode="w")
+        super().__init__(path=path, read_only=True)
 
 
-class MergedFile(WritableFile):
+class WritableDataFile(DataFile):
+    def __init__(self, path: str):
+        super().__init__(path=path, read_only=False)
+
+
+class MergedDataFile(WritableDataFile):
     def __init__(self, store_path: str):
         # Using timestamp in nanoseconds to avoid name collisions
         timestamp_in_ns = int(datetime.timestamp(datetime.now()) * 1_000_000)
         file_path = f"{store_path}/merged-{timestamp_in_ns}.data"
         super().__init__(path=file_path)
 
-    def flush_rows(self, file_rows: dict[str, FileRow]) -> KeyDir:
+    def flush_rows(self, file_rows: dict[str, DataFileRow]) -> KeyDir:
         file_key_dir = KeyDir()
         offset = 0
         for key, entry in file_rows.items():
@@ -279,7 +285,7 @@ class HintFile(File):
         return os.path.splitext(self.path)[0] + ".data"
 
     @classmethod
-    def from_merge_file(cls, merged_file: MergedFile):
+    def from_merge_file(cls, merged_file: MergedDataFile):
         return cls(path=os.path.splitext(merged_file.path)[0] + ".hint")
 
     def write(self, merged_file_key_dir: KeyDir) -> None:
@@ -306,7 +312,7 @@ class HintFile(File):
                 yield item
 
 
-class ActiveFile(WritableFile):
+class ActiveFile(WritableDataFile):
     def _append(self, stored_item: StoredItem) -> File.Offset:
         self.file.write(stored_item.to_bytes())
         offset = self.file.tell()
@@ -332,7 +338,3 @@ class ActiveFile(WritableFile):
     def convert_to_immutable(self, new_path: str) -> None:
         self.file.close()
         os.rename(src=self.path, dst=new_path)
-
-
-class ImmutableFile(ReadableFile):
-    pass
