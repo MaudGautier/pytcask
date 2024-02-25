@@ -3,7 +3,7 @@ from time import time
 
 from src.io_handling import (
     ActiveFile,
-    StoredItem,
+    DataFileItem,
     File,
     HintFile,
     DataFile,
@@ -31,15 +31,15 @@ class Storage:
         )
         self.active_file = ActiveFile(self.active_file.path)
 
-    def _append_to_active_file(self, stored_item: StoredItem) -> File.Offset:
-        new_line_size = stored_item.size
+    def _append_to_active_file(self, data_file_item: DataFileItem) -> File.Offset:
+        new_line_size = data_file_item.size
         expected_file_size = self.active_file.size + new_line_size
         is_active_file_too_big = expected_file_size > self.max_file_size
 
         if is_active_file_too_big:
             self._generate_new_active_file()
 
-        value_position_offset = self.active_file.append(stored_item=stored_item)
+        value_position_offset = self.active_file.append(data_file_item=data_file_item)
         return value_position_offset
 
     def _get_index_rebuild_files(self) -> tuple[list[DataFile], list[HintFile]]:
@@ -64,16 +64,16 @@ class Storage:
         2. Add the key to the keyDir in-memory structure.
         """
         item = Item(key=key, value=value)
-        stored_item = StoredItem.from_item(item=item)
+        data_file_item = DataFileItem.from_item(item=item)
         active_file_value_position_offset = self._append_to_active_file(
-            stored_item=stored_item
+            data_file_item=data_file_item
         )
         self.key_dir.update(
             key=key,
             file_path=self.active_file.path,
             value_position=active_file_value_position_offset,
-            value_size=stored_item.value_size,
-            timestamp=stored_item.timestamp,
+            value_size=data_file_item.value_size,
+            timestamp=data_file_item.timestamp,
         )
 
     def get(self, key: Item.Key) -> Item.Value or None:

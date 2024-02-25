@@ -17,7 +17,7 @@ class FileType(str, Enum):
     UNMERGED_DATA = "unmerged_data"
 
 
-class StoredItem:
+class DataFileItem:
     def __init__(
         self,
         key: str,
@@ -69,7 +69,7 @@ class StoredItem:
         return encoded_metadata + encoded_key + encoded_value
 
     @classmethod
-    def from_bytes(cls, data: bytes) -> "StoredItem":
+    def from_bytes(cls, data: bytes) -> "DataFileItem":
         # metadata_offset is the number of bytes expected in the metadata
         metadata_offset = 3 * NB_BYTES_INTEGER
         timestamp, key_size, value_size = struct.unpack("iii", data[:metadata_offset])
@@ -91,7 +91,7 @@ class StoredItem:
         return f"{self.key}:{self.value.decode(ENCODING)} ({self.timestamp})"
 
     @classmethod
-    def from_item(cls, item: Item) -> "StoredItem":
+    def from_item(cls, item: Item) -> "DataFileItem":
         return cls(value=item.value, key=item.key)
 
 
@@ -161,7 +161,7 @@ class DataFile(File):
     def __init__(self, path: str, read_only: bool = True):
         super().__init__(path=path, mode="r" if read_only else "w")
 
-    def __iter__(self) -> Iterator[StoredItem]:
+    def __iter__(self) -> Iterator[DataFileItem]:
         file_size = os.path.getsize(self.path)
         with open(self.path, "rb") as file:
             # This means that the whole file is stored in memory at once. This is required because the size of the next
@@ -172,18 +172,18 @@ class DataFile(File):
             data = file.read()
             offset = 0
             while offset < file_size:
-                stored_item = StoredItem.from_bytes(data[offset:])
-                chunk_size = stored_item.size
+                data_file_item = DataFileItem.from_bytes(data[offset:])
+                chunk_size = data_file_item.size
                 offset += chunk_size
-                yield stored_item
+                yield data_file_item
 
     def read_rows(self, file_rows: dict[str, DataFileRow]):
-        for stored_item in self:
-            file_rows[stored_item.key] = DataFileRow(
-                content=stored_item.to_bytes(),
-                value_size=stored_item.value_size,
-                value_position_in_row=stored_item.value_position,
-                timestamp=stored_item.timestamp,
+        for data_file_item in self:
+            file_rows[data_file_item.key] = DataFileRow(
+                content=data_file_item.to_bytes(),
+                value_size=data_file_item.value_size,
+                value_position_in_row=data_file_item.value_position,
+                timestamp=data_file_item.timestamp,
             )
         return file_rows
 
@@ -312,11 +312,11 @@ class HintFile(File):
 
 
 class ActiveFile(WritableDataFile):
-    def _append(self, stored_item: StoredItem) -> File.Offset:
-        self.file.write(stored_item.to_bytes())
+    def _append(self, data_file_item: DataFileItem) -> File.Offset:
+        self.file.write(data_file_item.to_bytes())
         offset = self.file.tell()
         # WARNING: The following leaks info from storable to file which is not great
-        value_position_offset = offset - stored_item.value_size
+        value_position_offset = offset - data_file_item.value_size
         self.file.flush()
         return value_position_offset
 
@@ -328,8 +328,8 @@ class ActiveFile(WritableDataFile):
     def size(self) -> File.Offset:
         return self._current_offset
 
-    def append(self, stored_item: StoredItem) -> File.Offset:
-        return self._append(stored_item=stored_item)
+    def append(self, data_file_item: DataFileItem) -> File.Offset:
+        return self._append(data_file_item=data_file_item)
 
     def close(self) -> None:
         self.file.close()
