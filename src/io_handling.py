@@ -163,7 +163,6 @@ class DataFile(File):
 
     def __iter__(self) -> Iterator[StoredItem]:
         file_size = os.path.getsize(self.path)
-        # TODO: BESOIN DE CE OPEN ICI ????
         with open(self.path, "rb") as file:
             # This means that the whole file is stored in memory at once. This is required because the size of the next
             # chunk depends on the size of the key and values (which we can't know before consuming the next bytes).

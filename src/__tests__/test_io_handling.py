@@ -1,6 +1,6 @@
 import pytest
 
-from src.fixtures.database import (
+from src.__fixtures__.database import (
     db_with_only_active_file_key_value_pairs,
     db_with_only_active_file,
 )

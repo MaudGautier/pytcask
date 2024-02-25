@@ -4,7 +4,7 @@ import pytest
 
 from src.merge_worker import MergeWorker
 from src.storage import Storage
-from src.fixtures.database import (
+from src.__fixtures__.database import (
     db_with_only_active_file,
     db_with_multiple_immutable_files,
     db_with_multiple_immutable_files_key_value_pairs,
