@@ -2,10 +2,12 @@ import os
 
 import pytest
 
+from src.merge_worker import MergeWorker
 from src.storage import Storage
 from src.fixtures.database import (
     db_with_only_active_file,
     db_with_multiple_immutable_files,
+    db_with_multiple_immutable_files_key_value_pairs,
 )
 
 TEST_DIRECTORY = "./datafiles/test"
@@ -86,3 +88,48 @@ def test_clear_database_and_directory():
     assert len(all_files) > 0
     database.clear(delete_directory=True)
     assert os.path.exists(directory) is False
+
+
+@pytest.mark.parametrize(
+    "db_with_multiple_immutable_files", [TEST_DIRECTORY], indirect=True
+)
+def test_build_index(db_with_multiple_immutable_files):
+    # GIVEN
+    database = db_with_multiple_immutable_files
+    assert len(os.listdir(database.directory)) == 5  # Check multiple files are present
+    merge_worker = MergeWorker(storage=database, file_size_threshold=100)
+    merge_worker.do_merge()
+
+    # WHEN/THEN
+    assert database.get(key="key1") == b"yet_another_value1"  # From hint file
+    assert database.get(key="k3") == b"yet_another_val3"  # Still in active file
+    # All others
+    expected_pairs = {
+        key: value for key, value in db_with_multiple_immutable_files_key_value_pairs
+    }
+    for key, expected_value in expected_pairs.items():
+        assert database.get(key=key) == expected_value
+
+    database.clear()
+
+
+@pytest.mark.parametrize(
+    "db_with_multiple_immutable_files", [TEST_DIRECTORY], indirect=True
+)
+def test_build_index_is_accessible_from_another_client(
+    db_with_multiple_immutable_files,
+):
+    # GIVEN
+    database = db_with_multiple_immutable_files
+    assert len(os.listdir(database.directory)) == 5  # Check multiple files are present
+    merge_worker = MergeWorker(storage=database, file_size_threshold=100)
+    merge_worker.do_merge()
+    database2 = Storage(directory=TEST_DIRECTORY, max_file_size=70)
+
+    # WHEN
+    value = database2.get(key="key1")
+
+    # THEN
+    assert value == b"yet_another_value1"
+
+    database.clear()

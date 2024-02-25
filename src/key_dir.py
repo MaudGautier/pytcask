@@ -15,6 +15,9 @@ class KeyDir:
     def __iter__(self) -> Iterator[KeyDirEntry]:
         return iter(zip(self.entries.keys(), self.entries.values()))
 
+    def _clear(self):
+        self.entries = {}
+
     def update(
         self,
         key: Item.Key,
@@ -43,3 +46,25 @@ class KeyDir:
 
     def get(self, key: Item.Key) -> KeyDirEntry or None:
         return self.entries[key] if key in self.entries else None
+
+    # TODO: handle type without circular error
+    def rebuild(self, hint_files, data_files):
+        self._clear()
+        for hint_file in hint_files:  # This is a HintFileItem
+            for item in hint_file:
+                self.update(
+                    key=item.key,
+                    file_path=hint_file.merged_file_path,
+                    value_position=item.value_position,
+                    value_size=item.value_size,
+                    timestamp=item.timestamp,
+                )
+        for unmerged_data_file in data_files:
+            for item in unmerged_data_file:  # This is a StoredItem
+                self.update(
+                    key=item.key,
+                    file_path=unmerged_data_file.path,
+                    value_position=item.value_position,
+                    value_size=item.value_size,
+                    timestamp=item.timestamp,
+                )

@@ -1,7 +1,14 @@
 import os
 from time import time
 
-from src.io_handling import ActiveFile, StoredItem, File
+from src.io_handling import (
+    ActiveFile,
+    StoredItem,
+    File,
+    HintFile,
+    ReadableFile,
+    FileType,
+)
 from src.item import Item
 from src.key_dir import KeyDir
 
@@ -10,8 +17,9 @@ class Storage:
     def __init__(self, directory: str, max_file_size: int):
         self.directory = directory
         self.active_file = ActiveFile(path=f"{self.directory}/active.data")
-        self.key_dir = KeyDir()
         self.max_file_size = max_file_size
+        self.key_dir = KeyDir()
+        self.rebuild_index()
 
     def _generate_new_active_file(self) -> None:
         # Using time in nanoseconds to avoid filename collisions
@@ -33,6 +41,18 @@ class Storage:
 
         value_position_offset = self.active_file.append(stored_item=stored_item)
         return value_position_offset
+
+    def _get_index_rebuild_files(self) -> tuple[list[ReadableFile], list[HintFile]]:
+        hint_files = []
+        unmerged_data_files = []
+        for filename in os.listdir(self.directory):
+            file_path = f"{self.directory}/{filename}"
+            file = ReadableFile(path=file_path)
+            if file.type == FileType.HINT:
+                hint_files.append(HintFile(path=file_path, read_only=True))
+            if file.type == FileType.UNMERGED_DATA:
+                unmerged_data_files.append(file)
+        return unmerged_data_files, hint_files
 
     # ~~~~~~~~~~~~~~~~~~~
     # ~~~ API
@@ -79,3 +99,18 @@ class Storage:
             os.remove(file_path)
         if delete_directory:
             os.rmdir(self.directory)
+
+    def rebuild_index(self):
+        """Builds the key_dir index.
+
+        The key_dir index is built by:
+        - Reading all hint files (to speed up the index build)
+        - Reading all data files that don't have a hint file associated
+        - For each file read, adding the entry in the key_dir.
+
+        This should be called at boot up.
+        """
+        data_files_without_hint_files, hint_files = self._get_index_rebuild_files()
+        self.key_dir.rebuild(
+            hint_files=hint_files, data_files=data_files_without_hint_files
+        )

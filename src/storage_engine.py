@@ -11,5 +11,11 @@ class StorageEngine:
         max_file_size: int = DEFAULT_MAX_FILE_SIZE,
     ):
         self.storage = Storage(directory=directory, max_file_size=max_file_size)
-        # TODO: add boot up process that builds the key_dir in mem by reading hint files
+        self._boot_up()
         # TODO: add call to merge (=> contains the merge worker)
+
+    def _boot_up(self):
+        print("Starting boot up process...")
+        print("Building index...")
+        self.storage.rebuild_index()
+        print("Boot up completed!")
