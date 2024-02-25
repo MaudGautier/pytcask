@@ -28,6 +28,16 @@ class DataFileItem:
         self.value = value
         self.timestamp = timestamp
 
+    def __eq__(self, other) -> bool:
+        return (
+            self.key == other.key
+            and self.value == other.value
+            and self.timestamp == other.timestamp
+        )
+
+    def __repr__(self) -> str:
+        return f"{self.key}:{self.value.decode(ENCODING)} ({self.timestamp})"
+
     @property
     def value_size(self) -> int:
         # Offset in bytes = number of bytes (because self.value is in bytes)
@@ -80,16 +90,6 @@ class DataFileItem:
 
         return cls(key=key, value=value, timestamp=timestamp)
 
-    def __eq__(self, other) -> bool:
-        return (
-            self.key == other.key
-            and self.value == other.value
-            and self.timestamp == other.timestamp
-        )
-
-    def __repr__(self) -> str:
-        return f"{self.key}:{self.value.decode(ENCODING)} ({self.timestamp})"
-
     @classmethod
     def from_item(cls, item: Item) -> "DataFileItem":
         return cls(value=item.value, key=item.key)
@@ -102,6 +102,21 @@ class File:
     def __init__(self, path: str, mode: str):
         self.path = path
         self.file: BinaryIO = self._get_file(mode=mode)
+
+    def __lt__(self, other):
+        """Files are sorted based on their creation date"""
+        return os.path.getctime(self.path) < os.path.getctime(other.path)
+
+    @staticmethod
+    def _ensure_directory_exists(file_path) -> None:
+        directory = os.path.dirname(file_path)
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+
+    def _get_file(self, mode: str) -> BinaryIO:
+        """Opens or creates a file in binary mode (depending on the mode passed)"""
+        self._ensure_directory_exists(self.path)
+        return open(self.path, mode=f"{mode}b")
 
     @property
     def type(self) -> str:
@@ -119,21 +134,6 @@ class File:
             file.seek(start)
             value = file.read(end - start)
             return value
-
-    @staticmethod
-    def _ensure_directory_exists(file_path) -> None:
-        directory = os.path.dirname(file_path)
-        if not os.path.exists(directory):
-            os.makedirs(directory)
-
-    def _get_file(self, mode: str) -> BinaryIO:
-        """Opens or creates a file in binary mode (depending on the mode passed)"""
-        self._ensure_directory_exists(self.path)
-        return open(self.path, mode=f"{mode}b")
-
-    def __lt__(self, other):
-        """Files are sorted based on their creation date"""
-        return os.path.getctime(self.path) < os.path.getctime(other.path)
 
     def discard(self):
         """Discards the file"""
