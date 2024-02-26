@@ -46,7 +46,7 @@ def test_a_missing_key_returns_none(db_with_only_active_file):
 )
 def test_updates_and_retrievals_with_small_files(db_with_multiple_immutable_files):
     # GIVEN
-    database = db_with_multiple_immutable_files
+    database, _ = db_with_multiple_immutable_files
 
     # WHEN
     value1 = database.get("key1")
@@ -95,8 +95,8 @@ def test_clear_database_and_directory():
 )
 def test_build_index(db_with_multiple_immutable_files):
     # GIVEN
-    database = db_with_multiple_immutable_files
-    assert len(os.listdir(database.directory)) == 5  # Check multiple files are present
+    database, nb = db_with_multiple_immutable_files
+    assert len(os.listdir(database.directory)) == nb  # Check multiple files are present
     merge_worker = MergeWorker(storage=database, file_size_threshold=100)
     merge_worker.do_merge()
 
@@ -120,8 +120,8 @@ def test_build_index_is_accessible_from_another_client(
     db_with_multiple_immutable_files,
 ):
     # GIVEN
-    database = db_with_multiple_immutable_files
-    assert len(os.listdir(database.directory)) == 5  # Check multiple files are present
+    database, nb = db_with_multiple_immutable_files
+    assert len(os.listdir(database.directory)) == nb  # Check multiple files are present
     merge_worker = MergeWorker(storage=database, file_size_threshold=100)
     merge_worker.do_merge()
     database2 = Storage(directory=TEST_DIRECTORY, max_file_size=70)

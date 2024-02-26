@@ -1,3 +1,5 @@
+import os
+
 import pytest
 
 from src.storage import Storage
@@ -41,4 +43,6 @@ def db_with_multiple_immutable_files(request):
     database = Storage(directory=request.param, max_file_size=70)
     for key, value in db_with_multiple_immutable_files_key_value_pairs:
         database.append(key=key, value=value)
-    return database
+
+    nb_files = len(os.listdir(database.directory))
+    return database, nb_files
