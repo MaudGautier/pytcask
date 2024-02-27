@@ -8,7 +8,7 @@ from src.io_handling.data_file import (
 )
 from src.io_handling.generic_file import FileType, File
 from src.io_handling.hint_file import HintFile
-from src.item import Item
+from src.item import Item, Tombstone
 from src.key_dir import KeyDir
 
 
@@ -59,7 +59,11 @@ class Storage:
     # ~~~ API
     # ~~~~~~~~~~~~~~~~~~~
 
-    def append(self, key: Item.Key, value: Item.Value) -> None:
+    def append(
+        self,
+        key: Item.Key,
+        value: Item.Value or None = None,
+    ) -> None:
         """When appending, we need to have an operation that atomically performs the following two things:
         1. Append the key-value pair to the currently active file
         2. Add the key to the keyDir in-memory structure.
@@ -90,6 +94,12 @@ class Storage:
             start=key_dir_entry.value_position,
             end=key_dir_entry.value_position + key_dir_entry.value_size,
         )
+
+    def delete(self, key: Item.Key) -> None:
+        """Deletes a record (by adding a tombstone)."""
+        data_file_item = DataFileItem.from_tombstone(tombstone=Tombstone(key=key))
+        self._append_to_active_file(data_file_item=data_file_item)
+        self.key_dir.delete(key=key)
 
     def clear(self, delete_directory: bool = False) -> None:
         """Clears the storage space by deleting all the data files.

@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Iterator
 
 from src.io_handling.generic_file import ENCODING, NB_BYTES_INTEGER, File
-from src.item import Item
+from src.item import Item, Tombstone
 from src.key_dir import KeyDir
 
 
@@ -12,12 +12,14 @@ class DataFileItem:
     def __init__(
         self,
         key: str,
-        value: bytes,
+        value: bytes or None,  # `None` is only in the case where `is_tombstone` is True
         timestamp: int = int(datetime.timestamp(datetime.now())),
+        is_tombstone: bool = False,
     ):
         self.key = key
         self.value = value
         self.timestamp = timestamp
+        self.is_tombstone = is_tombstone
 
     def __eq__(self, other) -> bool:
         return (
@@ -31,6 +33,8 @@ class DataFileItem:
 
     @property
     def value_size(self) -> int:
+        if self.is_tombstone:
+            return 0
         # Offset in bytes = number of bytes (because self.value is in bytes)
         return len(self.value)
 
@@ -60,7 +64,7 @@ class DataFileItem:
 
     @property
     def size(self) -> int:
-        return len(self.encoded_metadata) + len(self.encoded_key) + len(self.value)
+        return len(self.encoded_metadata) + len(self.encoded_key) + self.value_size
 
     @property
     def encoded_item(self) -> bytes:
@@ -70,6 +74,9 @@ class DataFileItem:
         encoded_metadata = self.encoded_metadata
         encoded_key = self.encoded_key
         encoded_value = self.value
+
+        if self.is_tombstone:
+            return encoded_metadata + encoded_key
 
         return encoded_metadata + encoded_key + encoded_value
 
@@ -82,12 +89,17 @@ class DataFileItem:
         value = data[
             metadata_offset + key_size : metadata_offset + key_size + value_size
         ]
+        is_tombstone = value_size == 0
 
-        return cls(key=key, value=value, timestamp=timestamp)
+        return cls(key=key, value=value, timestamp=timestamp, is_tombstone=is_tombstone)
 
     @classmethod
     def from_item(cls, item: Item) -> "DataFileItem":
-        return cls(value=item.value, key=item.key)
+        return cls(key=item.key, value=item.value)
+
+    @classmethod
+    def from_tombstone(cls, tombstone: Tombstone) -> "DataFileItem":
+        return cls(key=tombstone.key, is_tombstone=True, value=None)
 
 
 class DataFile(File):

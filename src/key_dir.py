@@ -38,6 +38,9 @@ class KeyDir:
             timestamp=timestamp,
         )
 
+    def delete(self, key: Item.Key) -> None:
+        del self.entries[key]
+
     def update_file_path(self, previous_path: str, new_path: str) -> None:
         for key, key_dir_entry in self:
             if key_dir_entry.file_path == previous_path:

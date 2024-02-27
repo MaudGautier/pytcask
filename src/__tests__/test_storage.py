@@ -133,3 +133,21 @@ def test_build_index_is_accessible_from_another_client(
     assert value == b"yet_another_value1"
 
     database.clear()
+
+
+@pytest.mark.parametrize("db_with_only_active_file", [TEST_DIRECTORY], indirect=True)
+def test_handle_tombstones(
+    db_with_only_active_file,
+):
+    # GIVEN
+    database = db_with_only_active_file
+    assert database.get(key="key1") == b"yet_another_value1"
+
+    # THEN
+    database.delete(key="key1")
+
+    # WHEN
+    assert database.get(key="key1") is None
+    assert database.key_dir.get(key="key1") is None
+
+    database.clear()
